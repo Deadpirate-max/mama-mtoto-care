@@ -1,8 +1,16 @@
 import { Link, useRouterState } from "@tanstack/react-router";
+import type { ComponentType } from "react";
 import { Bell, Home, LogOut, Search, UserPlus } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { isOffline, onOfflineChange } from "@/lib/api";
 import { useRequireAuth, useSignOut } from "@/lib/auth";
+
+const BackLink = Link as unknown as ComponentType<{
+  to: string;
+  params?: Record<string, string>;
+  className?: string;
+  children: ReactNode;
+}>;
 
 const nav = [
   { to: "/", label: "Home", icon: Home },
@@ -15,7 +23,10 @@ function OfflineBanner() {
   const [off, setOff] = useState(false);
   useEffect(() => {
     setOff(isOffline());
-    return onOfflineChange(() => setOff(isOffline()));
+    const unsubscribe = onOfflineChange(() => setOff(isOffline()));
+    return () => {
+      unsubscribe();
+    };
   }, []);
   if (!off) return null;
   return (
@@ -55,13 +66,13 @@ export function AppShell({
         <div className="mx-auto flex max-w-3xl items-start justify-between gap-3">
           <div className="min-w-0">
             {back && (
-              <Link
+              <BackLink
                 to={back.to}
-                params={back.params}
+                {...(back.params ? { params: back.params } : {})}
                 className="mb-1 inline-block text-xs opacity-80 hover:opacity-100"
               >
                 ← Back
-              </Link>
+              </BackLink>
             )}
             <h1 className="truncate text-lg font-bold leading-tight">{title}</h1>
             <p className="truncate text-xs opacity-85">{subtitle ?? user.facility}</p>

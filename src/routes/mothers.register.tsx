@@ -53,10 +53,19 @@ function RegisterMother() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.name.trim()) return toast.error("Enter the mother's full name");
+    if (!form.name.trim()) {
+      toast.error("Enter the mother's full name");
+      return;
+    }
     if (!/^\+?\d{9,15}$/.test(form.phone.replace(/\s/g, "")))
-      return toast.error("Enter a valid phone number");
-    if (!form.lmp) return toast.error("Enter the last menstrual period date");
+      {
+      toast.error("Enter a valid phone number");
+      return;
+    }
+    if (!form.lmp) {
+      toast.error("Enter the last menstrual period date");
+      return;
+    }
 
     setBusy(true);
     try {

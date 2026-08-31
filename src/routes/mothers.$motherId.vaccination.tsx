@@ -40,7 +40,7 @@ function VaccinationForm() {
   const qc = useQueryClient();
   const [busy, setBusy] = useState(false);
   const [f, setF] = useState({
-    vaccine: VACCINES[0],
+    vaccine: "Tetanus-Diphtheria (TD)",
     dose: "TD1",
     givenDate: new Date().toISOString().slice(0, 10),
     batchNumber: "",
@@ -53,7 +53,10 @@ function VaccinationForm() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!f.dose.trim()) return toast.error("Enter the dose");
+    if (!f.dose.trim()) {
+      toast.error("Enter the dose");
+      return;
+    }
     setBusy(true);
     try {
       await api.createVaccination(motherId, {

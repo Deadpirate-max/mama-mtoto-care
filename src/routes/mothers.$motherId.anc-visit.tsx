@@ -62,8 +62,14 @@ function AncVisitForm() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!f.bpSystolic || !f.bpDiastolic) return toast.error("Blood pressure is required");
-    if (!f.weightKg) return toast.error("Weight is required");
+    if (!f.bpSystolic || !f.bpDiastolic) {
+      toast.error("Blood pressure is required");
+      return;
+    }
+    if (!f.weightKg) {
+      toast.error("Weight is required");
+      return;
+    }
     setBusy(true);
     try {
       await api.createVisit(motherId, {
