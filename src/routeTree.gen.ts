@@ -10,13 +10,23 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AlertsRouteImport } from './routes/alerts'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MothersRegisterRouteImport } from './routes/mothers.register'
 import { Route as MothersSearchRouteImport } from './routes/mothers.search'
+import { Route as MothersMotherIdIndexRouteImport } from './routes/mothers.$motherId.index'
+import { Route as MothersMotherIdAncVisitRouteImport } from './routes/mothers.$motherId.anc-visit'
+import { Route as MothersMotherIdLabResultsRouteImport } from './routes/mothers.$motherId.lab-results'
+import { Route as MothersMotherIdVaccinationRouteImport } from './routes/mothers.$motherId.vaccination'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AlertsRoute = AlertsRouteImport.update({
+  id: '/alerts',
+  path: '/alerts',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -34,39 +44,109 @@ const MothersSearchRoute = MothersSearchRouteImport.update({
   path: '/mothers/search',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MothersMotherIdIndexRoute = MothersMotherIdIndexRouteImport.update({
+  id: '/mothers/$motherId/',
+  path: '/mothers/$motherId/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MothersMotherIdAncVisitRoute = MothersMotherIdAncVisitRouteImport.update({
+  id: '/mothers/$motherId/anc-visit',
+  path: '/mothers/$motherId/anc-visit',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MothersMotherIdLabResultsRoute =
+  MothersMotherIdLabResultsRouteImport.update({
+    id: '/mothers/$motherId/lab-results',
+    path: '/mothers/$motherId/lab-results',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const MothersMotherIdVaccinationRoute =
+  MothersMotherIdVaccinationRouteImport.update({
+    id: '/mothers/$motherId/vaccination',
+    path: '/mothers/$motherId/vaccination',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/alerts': typeof AlertsRoute
   '/login': typeof LoginRoute
   '/mothers/register': typeof MothersRegisterRoute
   '/mothers/search': typeof MothersSearchRoute
+  '/mothers/$motherId/anc-visit': typeof MothersMotherIdAncVisitRoute
+  '/mothers/$motherId/lab-results': typeof MothersMotherIdLabResultsRoute
+  '/mothers/$motherId/vaccination': typeof MothersMotherIdVaccinationRoute
+  '/mothers/$motherId/': typeof MothersMotherIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/alerts': typeof AlertsRoute
   '/login': typeof LoginRoute
   '/mothers/register': typeof MothersRegisterRoute
   '/mothers/search': typeof MothersSearchRoute
+  '/mothers/$motherId/anc-visit': typeof MothersMotherIdAncVisitRoute
+  '/mothers/$motherId/lab-results': typeof MothersMotherIdLabResultsRoute
+  '/mothers/$motherId/vaccination': typeof MothersMotherIdVaccinationRoute
+  '/mothers/$motherId': typeof MothersMotherIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/alerts': typeof AlertsRoute
   '/login': typeof LoginRoute
   '/mothers/register': typeof MothersRegisterRoute
   '/mothers/search': typeof MothersSearchRoute
+  '/mothers/$motherId/anc-visit': typeof MothersMotherIdAncVisitRoute
+  '/mothers/$motherId/lab-results': typeof MothersMotherIdLabResultsRoute
+  '/mothers/$motherId/vaccination': typeof MothersMotherIdVaccinationRoute
+  '/mothers/$motherId/': typeof MothersMotherIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/mothers/register' | '/mothers/search'
+  fullPaths:
+    | '/'
+    | '/alerts'
+    | '/login'
+    | '/mothers/register'
+    | '/mothers/search'
+    | '/mothers/$motherId/anc-visit'
+    | '/mothers/$motherId/lab-results'
+    | '/mothers/$motherId/vaccination'
+    | '/mothers/$motherId/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/mothers/register' | '/mothers/search'
-  id: '__root__' | '/' | '/login' | '/mothers/register' | '/mothers/search'
+  to:
+    | '/'
+    | '/alerts'
+    | '/login'
+    | '/mothers/register'
+    | '/mothers/search'
+    | '/mothers/$motherId/anc-visit'
+    | '/mothers/$motherId/lab-results'
+    | '/mothers/$motherId/vaccination'
+    | '/mothers/$motherId'
+  id:
+    | '__root__'
+    | '/'
+    | '/alerts'
+    | '/login'
+    | '/mothers/register'
+    | '/mothers/search'
+    | '/mothers/$motherId/anc-visit'
+    | '/mothers/$motherId/lab-results'
+    | '/mothers/$motherId/vaccination'
+    | '/mothers/$motherId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AlertsRoute: typeof AlertsRoute
   LoginRoute: typeof LoginRoute
   MothersRegisterRoute: typeof MothersRegisterRoute
   MothersSearchRoute: typeof MothersSearchRoute
+  MothersMotherIdAncVisitRoute: typeof MothersMotherIdAncVisitRoute
+  MothersMotherIdLabResultsRoute: typeof MothersMotherIdLabResultsRoute
+  MothersMotherIdVaccinationRoute: typeof MothersMotherIdVaccinationRoute
+  MothersMotherIdIndexRoute: typeof MothersMotherIdIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -76,6 +156,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/alerts': {
+      id: '/alerts'
+      path: '/alerts'
+      fullPath: '/alerts'
+      preLoaderRoute: typeof AlertsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -99,14 +186,47 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MothersSearchRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/mothers/$motherId/': {
+      id: '/mothers/$motherId/'
+      path: '/mothers/$motherId'
+      fullPath: '/mothers/$motherId/'
+      preLoaderRoute: typeof MothersMotherIdIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mothers/$motherId/anc-visit': {
+      id: '/mothers/$motherId/anc-visit'
+      path: '/mothers/$motherId/anc-visit'
+      fullPath: '/mothers/$motherId/anc-visit'
+      preLoaderRoute: typeof MothersMotherIdAncVisitRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mothers/$motherId/lab-results': {
+      id: '/mothers/$motherId/lab-results'
+      path: '/mothers/$motherId/lab-results'
+      fullPath: '/mothers/$motherId/lab-results'
+      preLoaderRoute: typeof MothersMotherIdLabResultsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mothers/$motherId/vaccination': {
+      id: '/mothers/$motherId/vaccination'
+      path: '/mothers/$motherId/vaccination'
+      fullPath: '/mothers/$motherId/vaccination'
+      preLoaderRoute: typeof MothersMotherIdVaccinationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AlertsRoute: AlertsRoute,
   LoginRoute: LoginRoute,
   MothersRegisterRoute: MothersRegisterRoute,
   MothersSearchRoute: MothersSearchRoute,
+  MothersMotherIdAncVisitRoute: MothersMotherIdAncVisitRoute,
+  MothersMotherIdLabResultsRoute: MothersMotherIdLabResultsRoute,
+  MothersMotherIdVaccinationRoute: MothersMotherIdVaccinationRoute,
+  MothersMotherIdIndexRoute: MothersMotherIdIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
