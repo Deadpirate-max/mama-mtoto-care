@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MothersRegisterRouteImport } from './routes/mothers.register'
+import { Route as MothersSearchRouteImport } from './routes/mothers.search'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -28,35 +29,44 @@ const MothersRegisterRoute = MothersRegisterRouteImport.update({
   path: '/mothers/register',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MothersSearchRoute = MothersSearchRouteImport.update({
+  id: '/mothers/search',
+  path: '/mothers/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/mothers/register': typeof MothersRegisterRoute
+  '/mothers/search': typeof MothersSearchRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/mothers/register': typeof MothersRegisterRoute
+  '/mothers/search': typeof MothersSearchRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/mothers/register': typeof MothersRegisterRoute
+  '/mothers/search': typeof MothersSearchRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/mothers/register'
+  fullPaths: '/' | '/login' | '/mothers/register' | '/mothers/search'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/mothers/register'
-  id: '__root__' | '/' | '/login' | '/mothers/register'
+  to: '/' | '/login' | '/mothers/register' | '/mothers/search'
+  id: '__root__' | '/' | '/login' | '/mothers/register' | '/mothers/search'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LoginRoute: typeof LoginRoute
   MothersRegisterRoute: typeof MothersRegisterRoute
+  MothersSearchRoute: typeof MothersSearchRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -82,6 +92,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MothersRegisterRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/mothers/search': {
+      id: '/mothers/search'
+      path: '/mothers/search'
+      fullPath: '/mothers/search'
+      preLoaderRoute: typeof MothersSearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -89,6 +106,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
   MothersRegisterRoute: MothersRegisterRoute,
+  MothersSearchRoute: MothersSearchRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
