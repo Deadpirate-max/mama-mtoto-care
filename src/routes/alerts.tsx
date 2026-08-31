@@ -22,7 +22,7 @@ export const Route = createFileRoute("/alerts")({
       },
     ],
   }),
-  component: AlertsFeed;
+  component: AlertsFeed,
 });
 
 const severityTone: Record<Alert["severity"], string> = {
