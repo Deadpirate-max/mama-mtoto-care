@@ -1,18 +1,17 @@
 /**
  * REST client for the Mama na Mtoto+ API.
  *
- * All endpoint paths live in ENDPOINTS so they can be re-pointed in one place
- * if the backend uses different route names.
+ * All endpoints now point directly to the live Railway backend.
+ * No mock data or fallback logic. Errors will be thrown loudly.
  */
-import * as mock from "./mock";
-
 export const API_BASE = "https://mama-na-mtoto-api-production.up.railway.app/api";
 
 export const ENDPOINTS = {
-  requestOtp: "/auth/chv/request-otp",
-  verifyOtp: "/auth/chv/verify-otp",
-  me: "/auth/chv/me",
-  stats: "/chv/stats",
+  // Use the same OTP endpoints as the mobile app (they exist)
+  requestOtp: "/auth/otp/request",
+  verifyOtp: "/auth/otp/verify",
+  me: "/auth/me", // now exists
+  stats: "/chv/stats", // now exists
   registerMother: "/mothers",
   searchMothers: "/mothers/search",
   mother: (id: string) => `/mothers/${id}`,
@@ -25,13 +24,7 @@ export const ENDPOINTS = {
 const TOKEN_KEY = "mnm_token";
 const USER_KEY = "mnm_user";
 
-export type Nurse = {
-  id: string;
-  name: string;
-  phone: string;
-  facility: string;
-  role: string;
-};
+export type Nurse = { id: string; name: string; phone: string; facility: string; role: string };
 
 export function getToken(): string | null {
   if (typeof window === "undefined") return null;
@@ -59,22 +52,9 @@ export function clearSession() {
   window.localStorage.removeItem(USER_KEY);
 }
 
-/** True when the live API could not be reached and demo data is being served. */
-let offline = false;
+// We remove the offline/fallback logic entirely.
 export function isOffline() {
-  return offline;
-}
-
-const listeners = new Set<() => void>();
-export function onOfflineChange(fn: () => void) {
-  listeners.add(fn);
-  return () => listeners.delete(fn);
-}
-function markOffline() {
-  if (!offline) {
-    offline = true;
-    listeners.forEach((l) => l());
-  }
+  return false;
 }
 
 export class ApiError extends Error {
@@ -104,38 +84,19 @@ async function request<T>(
   try {
     json = text ? JSON.parse(text) : null;
   } catch {
-    /* non-json response */
+    /* non-json */
   }
 
-  const payload = json as
-    | { success?: boolean; data?: unknown; error?: { message?: string } }
-    | null;
+  const payload = json as {
+    success?: boolean;
+    data?: unknown;
+    error?: { message?: string };
+  } | null;
 
   if (!res.ok || payload?.success === false) {
     throw new ApiError(payload?.error?.message ?? `Request failed (${res.status})`, res.status);
   }
   return (payload && "data" in payload ? payload.data : payload) as T;
-}
-
-/**
- * Calls the live API, falling back to the bundled demo dataset when the
- * endpoint is unavailable (network failure or route not deployed yet).
- */
-async function call<T>(
-  path: string,
-  options: { method?: string; body?: unknown },
-  fallback: () => Promise<T>,
-): Promise<T> {
-  try {
-    return await request<T>(path, options);
-  } catch (err) {
-    const unreachable = !(err instanceof ApiError) || err.status === 404 || err.status >= 500;
-    if (unreachable) {
-      markOffline();
-      return fallback();
-    }
-    throw err;
-  }
 }
 
 /* ---------------------------------- types --------------------------------- */
@@ -156,7 +117,6 @@ export type Mother = {
   nextAppointment?: string | null;
   createdAt: string;
 };
-
 export type AncVisit = {
   id: string;
   motherId: string;
@@ -173,7 +133,6 @@ export type AncVisit = {
   nextAppointment?: string | null;
   flags: string[];
 };
-
 export type LabResult = {
   id: string;
   motherId: string;
@@ -186,7 +145,6 @@ export type LabResult = {
   syphilis?: string;
   flags: string[];
 };
-
 export type Vaccination = {
   id: string;
   motherId: string;
@@ -197,7 +155,6 @@ export type Vaccination = {
   administeredBy?: string;
   nextDueDate?: string | null;
 };
-
 export type Alert = {
   id: string;
   motherId: string;
@@ -209,7 +166,6 @@ export type Alert = {
   status: "open" | "acknowledged" | "resolved";
   createdAt: string;
 };
-
 export type Stats = {
   mothersRegistered: number;
   ancVisitsThisMonth: number;
@@ -223,61 +179,33 @@ export type Stats = {
 
 export const api = {
   requestOtp: (phone: string) =>
-    call<{ sent: boolean }>(ENDPOINTS.requestOtp, { method: "POST", body: { phone } }, () =>
-      mock.requestOtp(phone),
-    ),
-
+    request<{ sent: boolean }>(ENDPOINTS.requestOtp, { method: "POST", body: { phone } }),
   verifyOtp: (phone: string, code: string) =>
-    call<{ token: string; user: Nurse }>(
-      ENDPOINTS.verifyOtp,
-      { method: "POST", body: { phone, code } },
-      () => mock.verifyOtp(phone, code),
-    ),
-
-  stats: () => call<Stats>(ENDPOINTS.stats, {}, () => mock.stats()),
-
+    request<{ token: string; user: Nurse }>(ENDPOINTS.verifyOtp, {
+      method: "POST",
+      body: { phone, code },
+    }),
+  stats: () => request<Stats>(ENDPOINTS.stats, {}),
   registerMother: (input: Omit<Mother, "id" | "registrationCode" | "createdAt" | "riskLevel">) =>
-    call<{ mother: Mother; smsSent: boolean }>(
-      ENDPOINTS.registerMother,
-      { method: "POST", body: input },
-      () => mock.registerMother(input),
-    ),
-
+    request<{ mother: Mother; smsSent: boolean }>(ENDPOINTS.registerMother, {
+      method: "POST",
+      body: input,
+    }),
   searchMothers: (q: string) =>
-    call<Mother[]>(
-      `${ENDPOINTS.searchMothers}?q=${encodeURIComponent(q)}`,
-      {},
-      () => mock.searchMothers(q),
-    ),
-
-  mother: (id: string) => call<Mother>(ENDPOINTS.mother(id), {}, () => mock.mother(id)),
-
-  visits: (id: string) => call<AncVisit[]>(ENDPOINTS.visits(id), {}, () => mock.visits(id)),
-
+    request<Mother[]>(`${ENDPOINTS.searchMothers}?q=${encodeURIComponent(q)}`, {}),
+  mother: (id: string) => request<Mother>(ENDPOINTS.mother(id), {}),
+  visits: (id: string) => request<AncVisit[]>(ENDPOINTS.visits(id), {}),
   createVisit: (id: string, body: Omit<AncVisit, "id" | "motherId" | "flags">) =>
-    call<AncVisit>(ENDPOINTS.visits(id), { method: "POST", body }, () =>
-      mock.createVisit(id, body),
-    ),
-
-  labs: (id: string) => call<LabResult[]>(ENDPOINTS.labs(id), {}, () => mock.labs(id)),
-
+    request<AncVisit>(ENDPOINTS.visits(id), { method: "POST", body }),
+  labs: (id: string) => request<LabResult[]>(ENDPOINTS.labs(id), {}),
   createLab: (id: string, body: Omit<LabResult, "id" | "motherId" | "flags">) =>
-    call<LabResult>(ENDPOINTS.labs(id), { method: "POST", body }, () => mock.createLab(id, body)),
-
-  vaccinations: (id: string) =>
-    call<Vaccination[]>(ENDPOINTS.vaccinations(id), {}, () => mock.vaccinations(id)),
-
+    request<LabResult>(ENDPOINTS.labs(id), { method: "POST", body }),
+  vaccinations: (id: string) => request<Vaccination[]>(ENDPOINTS.vaccinations(id), {}),
   createVaccination: (id: string, body: Omit<Vaccination, "id" | "motherId">) =>
-    call<Vaccination>(ENDPOINTS.vaccinations(id), { method: "POST", body }, () =>
-      mock.createVaccination(id, body),
-    ),
-
-  alerts: () => call<Alert[]>(ENDPOINTS.alerts, {}, () => mock.alerts()),
-
+    request<Vaccination>(ENDPOINTS.vaccinations(id), { method: "POST", body }),
+  alerts: () => request<Alert[]>(ENDPOINTS.alerts, {}),
   updateAlert: (id: string, status: Alert["status"]) =>
-    call<Alert>(`${ENDPOINTS.alerts}/${id}`, { method: "PATCH", body: { status } }, () =>
-      mock.updateAlert(id, status),
-    ),
+    request<Alert>(`${ENDPOINTS.alerts}/${id}`, { method: "PATCH", body: { status } }),
 };
 
 /* ------------------------------ shared helpers ----------------------------- */

@@ -2,7 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import type { ComponentType } from "react";
 import { Bell, Home, LogOut, Search, UserPlus } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
-import { isOffline, onOfflineChange } from "@/lib/api";
+// Removed: import { isOffline, onOfflineChange } from "@/lib/api";
 import { useRequireAuth, useSignOut } from "@/lib/auth";
 
 const BackLink = Link as unknown as ComponentType<{
@@ -19,22 +19,7 @@ const nav = [
   { to: "/alerts", label: "Alerts", icon: Bell },
 ] as const;
 
-function OfflineBanner() {
-  const [off, setOff] = useState(false);
-  useEffect(() => {
-    setOff(isOffline());
-    const unsubscribe = onOfflineChange(() => setOff(isOffline()));
-    return () => {
-      unsubscribe();
-    };
-  }, []);
-  if (!off) return null;
-  return (
-    <div className="bg-warning px-4 py-2 text-center text-xs font-medium text-warning-foreground">
-      Live server unavailable — showing demo data saved on this device.
-    </div>
-  );
-}
+// Removed the entire OfflineBanner component
 
 export function AppShell({
   title,
@@ -61,7 +46,7 @@ export function AppShell({
 
   return (
     <div className="min-h-screen bg-muted/40 pb-24">
-      <OfflineBanner />
+      {/* Removed <OfflineBanner /> */}
       <header className="sticky top-0 z-20 bg-gradient-brand px-4 py-4 text-primary-foreground shadow-brand">
         <div className="mx-auto flex max-w-3xl items-start justify-between gap-3">
           <div className="min-w-0">
