@@ -2,9 +2,9 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 import { CheckCircle2, MessageSquare } from "lucide-react";
-import { api, type Mother } from "@/lib/api";
 import { AppShell } from "@/components/AppShell";
 import { Field, inputClass } from "@/components/Field";
+import { api, getStoredUser, type Mother } from "@/lib/api";
 
 export const Route = createFileRoute("/mothers/register")({
   head: () => ({
@@ -28,8 +28,9 @@ export const Route = createFileRoute("/mothers/register")({
 function addDays(dateStr: string, days: number) {
   if (!dateStr) return "";
   const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return "";
   d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
+  return d.toISOString().slice(0, 10); // Returns "2027-06-08"
 }
 
 function RegisterMother() {
@@ -57,13 +58,19 @@ function RegisterMother() {
       toast.error("Enter the mother's full name");
       return;
     }
-    if (!/^\+?\d{9,15}$/.test(form.phone.replace(/\s/g, "")))
-      {
+    if (!/^\+?\d{9,15}$/.test(form.phone.replace(/\s/g, ""))) {
       toast.error("Enter a valid phone number");
       return;
     }
     if (!form.lmp) {
       toast.error("Enter the last menstrual period date");
+      return;
+    }
+
+    // 🛡️ Auto-fill nurse info from logged-in session
+    const user = getStoredUser();
+    if (!user) {
+      toast.error("Session expired — please log in again");
       return;
     }
 
@@ -77,8 +84,14 @@ function RegisterMother() {
         village: form.village.trim(),
         lmp: form.lmp,
         edd,
-        gravida: Number(form.gravida) || 1,
-        parity: Number(form.parity) || 0,
+        // 🔥 Send as strings, not numbers
+        gravida: String(form.gravida),
+        parity: String(form.parity),
+        // 🔥 Auto-fill nurse details
+        nurse_name: user.name,
+        nurse_phone: user.phone,
+        facility_name: user.facility,
+        facility_code: (user as any).facilityCode || "",
         nextAppointment: null,
       });
       setDone(res);
@@ -115,7 +128,9 @@ function RegisterMother() {
 
           <div className="mt-6 grid gap-2 sm:grid-cols-2">
             <button
-              onClick={() => navigate({ to: "/mothers/$motherId", params: { motherId: done.mother.id } })}
+              onClick={() =>
+                navigate({ to: "/mothers/$motherId", params: { motherId: done.mother.id } })
+              }
               className="rounded-xl bg-primary py-3 font-semibold text-primary-foreground"
             >
               Open profile
@@ -149,34 +164,77 @@ function RegisterMother() {
       <form onSubmit={submit} className="space-y-4">
         <div className="card-surface space-y-4">
           <Field label="Full name">
-            <input className={inputClass()} value={form.name} onChange={set("name")} placeholder="Amina Wanjiku" />
+            <input
+              className={inputClass()}
+              value={form.name}
+              onChange={set("name")}
+              placeholder="Amina Wanjiku"
+            />
           </Field>
           <Field label="Phone number" hint="Registration code is sent to this number by SMS.">
-            <input className={inputClass()} type="tel" inputMode="tel" value={form.phone} onChange={set("phone")} />
+            <input
+              className={inputClass()}
+              type="tel"
+              inputMode="tel"
+              value={form.phone}
+              onChange={set("phone")}
+            />
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Age">
-              <input className={inputClass()} type="number" inputMode="numeric" value={form.age} onChange={set("age")} />
+              <input
+                className={inputClass()}
+                type="number"
+                inputMode="numeric"
+                value={form.age}
+                onChange={set("age")}
+              />
             </Field>
             <Field label="National ID">
-              <input className={inputClass()} value={form.nationalId} onChange={set("nationalId")} />
+              <input
+                className={inputClass()}
+                value={form.nationalId}
+                onChange={set("nationalId")}
+              />
             </Field>
           </div>
           <Field label="Village / location">
-            <input className={inputClass()} value={form.village} onChange={set("village")} placeholder="Ndumberi" />
+            <input
+              className={inputClass()}
+              value={form.village}
+              onChange={set("village")}
+              placeholder="Ndumberi"
+            />
           </Field>
         </div>
 
         <div className="card-surface space-y-4">
-          <Field label="Last menstrual period (LMP)" hint={edd ? `Estimated delivery date: ${edd}` : undefined}>
+          <Field
+            label="Last menstrual period (LMP)"
+            hint={edd ? `Estimated delivery date: ${edd}` : undefined}
+          >
             <input className={inputClass()} type="date" value={form.lmp} onChange={set("lmp")} />
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Gravida">
-              <input className={inputClass()} type="number" inputMode="numeric" min={1} value={form.gravida} onChange={set("gravida")} />
+              <input
+                className={inputClass()}
+                type="number"
+                inputMode="numeric"
+                min={1}
+                value={form.gravida}
+                onChange={set("gravida")}
+              />
             </Field>
             <Field label="Parity">
-              <input className={inputClass()} type="number" inputMode="numeric" min={0} value={form.parity} onChange={set("parity")} />
+              <input
+                className={inputClass()}
+                type="number"
+                inputMode="numeric"
+                min={0}
+                value={form.parity}
+                onChange={set("parity")}
+              />
             </Field>
           </div>
         </div>
