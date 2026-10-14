@@ -7,6 +7,7 @@ import {
   Heart,
   Activity,
   AlertTriangle,
+  Calendar,
   ChevronRight,
   TrendingUp,
   Sparkles,
@@ -27,7 +28,7 @@ function formatDate(date: string | undefined | null): string {
     return d.toLocaleDateString("en-KE", {
       day: "numeric",
       month: "short",
-      year: "2-digit", // Shows "27" instead of "2027"
+      year: "2-digit",
     });
   } catch {
     return "—";
@@ -46,11 +47,19 @@ function formatTime(date: string | undefined | null): string {
   }
 }
 
+type UpcomingItem = {
+  motherName: string;
+  motherId: string;
+  date: string;
+  visitNumber: number;
+};
+
 function HomePage() {
   const user = getStoredUser();
   const [stats, setStats] = useState<Stats | null>(null);
   const [recentMothers, setRecentMothers] = useState<Mother[]>([]);
   const [recentAlerts, setRecentAlerts] = useState<Alert[]>([]);
+  const [upcoming, setUpcoming] = useState<UpcomingItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -62,12 +71,31 @@ function HomePage() {
           api.searchMothers("").catch(() => []),
           api.alerts().catch(() => []),
         ]);
+
         if (!mounted) return;
+
+        // 🗓️ Compute upcoming appointments from mothers with nextAppointmentDate
+        const upcomingList: UpcomingItem[] = (m || [])
+          .flatMap((mother: any) =>
+            (mother.ancVisits || [])
+              .filter((v: any) => v.attended && v.nextAppointmentDate)
+              .map((v: any) => ({
+                motherName: mother.name,
+                motherId: mother.id,
+                date: v.nextAppointmentDate,
+                visitNumber: (v.visitNumber || 0) + 1,
+              })),
+          )
+          .filter((x) => new Date(x.date) >= new Date())
+          .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+          .slice(0, 5);
+
         setStats(s);
         setRecentMothers((m || []).slice(0, 4));
         setRecentAlerts(
           (a || []).filter((x) => x.status === "open" || x.status === "sent").slice(0, 3),
         );
+        setUpcoming(upcomingList);
       } finally {
         if (mounted) setLoading(false);
       }
@@ -84,7 +112,7 @@ function HomePage() {
   return (
     <AppShell title={`Karibu, ${firstName}`} subtitle={user?.facility || ""}>
       <div className="space-y-5">
-        {/* ── 🚨 RED ALERTS BANNER ── */}
+        {/* ── 🚨 ALERTS BANNER ── */}
         {openAlerts > 0 && (
           <Link
             to="/alerts"
@@ -110,7 +138,7 @@ function HomePage() {
         <div className="grid grid-cols-2 gap-3">
           <Link
             to="/mothers/register"
-            className="group flex flex-col items-start gap-2 rounded-2xl border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-white p-4 shadow-sm transition active:scale-[0.98] hover:border-purple-400"
+            className="flex flex-col items-start gap-2 rounded-2xl border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-white p-4 shadow-sm transition active:scale-[0.98] hover:border-purple-400"
           >
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-purple-600 text-white shadow-md">
               <UserPlus className="h-5 w-5" />
@@ -123,7 +151,7 @@ function HomePage() {
 
           <Link
             to="/mothers/search"
-            className="group flex flex-col items-start gap-2 rounded-2xl border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-white p-4 shadow-sm transition active:scale-[0.98] hover:border-purple-400"
+            className="flex flex-col items-start gap-2 rounded-2xl border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-white p-4 shadow-sm transition active:scale-[0.98] hover:border-purple-400"
           >
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-purple-600 text-white shadow-md">
               <Search className="h-5 w-5" />
@@ -135,7 +163,7 @@ function HomePage() {
           </Link>
         </div>
 
-        {/* ── 🎨 COLORFUL STATS GRID ── */}
+        {/* ── Stats grid ── */}
         <div>
           <h2 className="mb-2 text-xs font-bold uppercase tracking-wider text-purple-900">
             Today at a glance
@@ -161,6 +189,41 @@ function HomePage() {
             />
           </div>
         </div>
+
+        {/* ── 🗓️ Upcoming appointments ── */}
+        {upcoming.length > 0 && (
+          <div>
+            <h2 className="mb-2 text-xs font-bold uppercase tracking-wider text-purple-900">
+              Upcoming appointments
+            </h2>
+            <div className="space-y-2">
+              {upcoming.map((u, i) => (
+                <Link
+                  key={`${u.motherId}-${i}`}
+                  to="/mothers/$motherId"
+                  params={{ motherId: u.motherId }}
+                  className="flex items-center gap-3 rounded-2xl border-2 border-blue-200 bg-white p-3 shadow-sm transition active:scale-[0.99]"
+                >
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-700">
+                    <Calendar className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-bold text-gray-900">{u.motherName}</p>
+                    <p className="text-xs text-gray-500">
+                      ANC Visit {u.visitNumber} ·{" "}
+                      {new Date(u.date).toLocaleDateString("en-KE", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </p>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-blue-400" />
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* ── Recent mothers ── */}
         <div>
@@ -218,7 +281,7 @@ function HomePage() {
           )}
         </div>
 
-        {/* ── 🚨 Recent alerts (red-themed) ── */}
+        {/* ── 🚨 Recent alerts ── */}
         {recentAlerts.length > 0 && (
           <div>
             <div className="mb-2 flex items-center justify-between">
@@ -259,7 +322,7 @@ function HomePage() {
           </div>
         )}
 
-        {/* ── 💜 Tip card (purple gradient) ── */}
+        {/* ── 💡 Tip card ── */}
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-800 p-4 text-white shadow-[0_8px_24px_rgba(109,40,217,0.35)]">
           <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-white/10" />
           <div className="absolute -bottom-8 -left-8 h-32 w-32 rounded-full bg-white/5" />
@@ -285,7 +348,7 @@ function HomePage() {
   );
 }
 
-// ── 🎨 Colorful StatCard ──────────────────────────────────────────────────
+// ── 🎨 StatCard ──
 function StatCard({
   icon,
   label,

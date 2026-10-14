@@ -84,10 +84,8 @@ function RegisterMother() {
         village: form.village.trim(),
         lmp: form.lmp,
         edd,
-        // 🔥 Send as strings, not numbers
         gravida: String(form.gravida),
         parity: String(form.parity),
-        // 🔥 Auto-fill nurse details
         nurse_name: user.name,
         nurse_phone: user.phone,
         facility_name: user.facility,
@@ -117,14 +115,49 @@ function RegisterMother() {
           <p className="mt-1 font-mono text-3xl font-bold tracking-[0.25em] text-primary">
             {done.mother.registrationCode}
           </p>
+          {/* ── Copy / Share buttons ── */}
+          <div className="mt-3 flex justify-center gap-2">
+            <button
+              onClick={() => {
+                const code = done.mother.registrationCode || "";
+                if (!code) return;
+                navigator.clipboard.writeText(code);
+                toast.success("Code copied");
+              }}
+              className="rounded-lg bg-purple-100 px-3 py-1.5 text-xs font-bold text-purple-700"
+            >
+              Copy
+            </button>
+            <button
+              onClick={() => {
+                const code = done.mother.registrationCode || "";
+                if (!code) return;
+                const msg = `Mama na Mtoto+ Registration Code: ${code}`;
+                if (navigator.share) {
+                  navigator.share({ text: msg });
+                } else {
+                  window.open(`sms:${done.mother.phone}?body=${encodeURIComponent(msg)}`);
+                }
+              }}
+              className="rounded-lg bg-purple-100 px-3 py-1.5 text-xs font-bold text-purple-700"
+            >
+              Share
+            </button>
+          </div>
           <p className="mt-2 text-xs text-muted-foreground">
             EDD {done.mother.edd} · Gravida {done.mother.gravida} · Parity {done.mother.parity}
           </p>
 
-          <p className="mt-5 inline-flex items-center gap-2 rounded-xl bg-success/10 px-3 py-2 text-sm font-medium text-success">
+          <div
+            className={`mt-5 inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium ${
+              done.smsSent ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"
+            }`}
+          >
             <MessageSquare className="h-4 w-4" />
-            {done.smsSent ? "SMS with code sent to the mother" : "SMS pending delivery"}
-          </p>
+            {done.smsSent
+              ? `SMS sent to ${done.mother.phone}`
+              : "SMS not sent — share the code manually"}
+          </div>
 
           <div className="mt-6 grid gap-2 sm:grid-cols-2">
             <button

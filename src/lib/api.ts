@@ -4,19 +4,23 @@
  * All endpoints now point directly to the live Railway backend.
  * No mock data or fallback logic. Errors will be thrown loudly.
  */
-export const API_BASE = "https://mama-na-mtoto-api-production.up.railway.app/api";
+export const API_BASE = "https://mama-na-mtoto-api-production-523a.up.railway.app/api";
 
 export const ENDPOINTS = {
-  // Use the same OTP endpoints as the mobile app (they exist)
+  // These are for mothers (not used by dashboard, but keep for safety)
   requestOtp: "/auth/otp/request",
   verifyOtp: "/auth/otp/verify",
-  me: "/auth/me", // now exists
-  stats: "/chv/stats", // now exists
+
+  // CHV Dashboard endpoints
+  me: "/auth/me", // Added above
+  stats: "/chv/stats", // Already exists
+
+  // Mothers CRUD (your existing ones)
   registerMother: "/mothers",
   searchMothers: "/mothers/search",
-  mother: (id: string) => `/mothers/${id}`,
-  visits: (id: string) => `/mothers/${id}/anc-visits`,
-  labs: (id: string) => `/mothers/${id}/lab-results`,
+  mother: (id: string) => `/mothers/id/${id}`,
+  visits: (id: string) => `/mothers/${id}/visits`,
+  labs: (id: string) => `/mothers/${id}/labs`,
   vaccinations: (id: string) => `/mothers/${id}/vaccinations`,
   alerts: "/alerts",
 };
@@ -55,6 +59,9 @@ export function clearSession() {
 // We remove the offline/fallback logic entirely.
 export function isOffline() {
   return false;
+}
+export async function createVisit(id: string, body: any) {
+  return request<any>(`/mothers/${id}/visits`, { method: "POST", body });
 }
 
 export class ApiError extends Error {
@@ -105,17 +112,26 @@ export type Mother = {
   id: string;
   name: string;
   phone: string;
-  registrationCode: string;
-  age: number;
+  registrationCode?: string;
+  age?: number;
   nationalId?: string;
-  village: string;
-  lmp: string;
-  edd: string;
-  gravida: number;
-  parity: number;
-  riskLevel: "low" | "medium" | "high";
+  village?: string;
+  lmp?: string;
+  edd?: string | null;
+  gravida?: string | number;
+  parity?: string | number;
+  riskLevel?: "low" | "medium" | "high";
   nextAppointment?: string | null;
-  createdAt: string;
+  createdAt?: string;
+
+  // 🛡️ Nurse + facility fields (used in dashboard lists)
+  county?: string;
+  idNumber?: string;
+  weeksPregnantAtRegistration?: number;
+  nurseName?: string;
+  nursePhone?: string;
+  facilityName?: string;
+  facilityCode?: string;
 };
 export type AncVisit = {
   id: string;
@@ -157,14 +173,22 @@ export type Vaccination = {
 };
 export type Alert = {
   id: string;
-  motherId: string;
-  motherName: string;
-  motherPhone: string;
-  dangerSign: string;
-  severity: "critical" | "urgent" | "watch";
-  message: string;
-  status: "open" | "acknowledged" | "resolved";
-  createdAt: string;
+  motherId?: string;
+  motherPhone?: string;
+  motherName?: string;
+  dangerSign?: string;
+  symptom?: string;
+  message?: string;
+  severity?: "critical" | "urgent" | "watch" | string;
+  status: "open" | "acknowledged" | "resolved" | string;
+  alertType?: string;
+  nursePhone?: string;
+  partnerPhone?: string;
+  smsSent?: boolean;
+  firedAt?: string;
+  createdAt?: string;
+  acknowledgedAt?: string;
+  resolvedAt?: string;
 };
 export type Stats = {
   mothersRegistered: number;
@@ -186,10 +210,30 @@ export const api = {
       body: { phone, code },
     }),
   stats: () => request<Stats>(ENDPOINTS.stats, {}),
-  registerMother: (input: Omit<Mother, "id" | "registrationCode" | "createdAt" | "riskLevel">) =>
+  registerMother: (input: {
+    name: string;
+    phone: string;
+    age: number;
+    nationalId?: string;
+    village?: string;
+    lmp?: string;
+    edd?: string;
+    gravida?: string | number;
+    parity?: string | number;
+    nurse_name?: string;
+    nurse_phone?: string;
+    facility_name?: string;
+    facility_code?: string;
+    nextAppointment?: string | null;
+  }) =>
     request<{ mother: Mother; smsSent: boolean }>(ENDPOINTS.registerMother, {
       method: "POST",
       body: input,
+    }),
+  chvLogin: (phone: string, pin: string) =>
+    request<{ token: string; user: Nurse }>("/chv/login", {
+      method: "POST",
+      body: { phone, pin },
     }),
   searchMothers: (q: string) =>
     request<Mother[]>(`${ENDPOINTS.searchMothers}?q=${encodeURIComponent(q)}`, {}),
