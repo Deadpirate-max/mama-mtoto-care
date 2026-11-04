@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { api, getStoredUser, type Mother, type Alert, type Stats } from "@/lib/api";
 import { AppShell } from "@/components/AppShell";
+import { useRequireAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/")({
   component: HomePage,
@@ -55,7 +56,7 @@ type UpcomingItem = {
 };
 
 function HomePage() {
-  const user = getStoredUser();
+  const { user } = useRequireAuth();
   const [stats, setStats] = useState<Stats | null>(null);
   const [recentMothers, setRecentMothers] = useState<Mother[]>([]);
   const [recentAlerts, setRecentAlerts] = useState<Alert[]>([]);
@@ -74,7 +75,7 @@ function HomePage() {
 
         if (!mounted) return;
 
-        // 🗓️ Compute upcoming appointments from mothers with nextAppointmentDate
+        // Compute upcoming appointments from mothers with nextAppointmentDate
         const upcomingList: UpcomingItem[] = (m || [])
           .flatMap((mother: any) =>
             (mother.ancVisits || [])
@@ -112,7 +113,7 @@ function HomePage() {
   return (
     <AppShell title={`Karibu, ${firstName}`} subtitle={user?.facility || ""}>
       <div className="space-y-5">
-        {/* ── 🚨 ALERTS BANNER ── */}
+        {/* ── ALERTS BANNER ── */}
         {openAlerts > 0 && (
           <Link
             to="/alerts"

@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AlertsRouteImport } from './routes/alerts'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as AdminNursesRouteImport } from './routes/admin.nurses'
 import { Route as MothersRegisterRouteImport } from './routes/mothers.register'
 import { Route as MothersSearchRouteImport } from './routes/mothers.search'
 import { Route as MothersMotherIdIndexRouteImport } from './routes/mothers.$motherId.index'
@@ -32,6 +33,11 @@ const AlertsRoute = AlertsRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminNursesRoute = AdminNursesRouteImport.update({
+  id: '/admin/nurses',
+  path: '/admin/nurses',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MothersRegisterRoute = MothersRegisterRouteImport.update({
@@ -71,6 +77,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/alerts': typeof AlertsRoute
   '/login': typeof LoginRoute
+  '/admin/nurses': typeof AdminNursesRoute
   '/mothers/register': typeof MothersRegisterRoute
   '/mothers/search': typeof MothersSearchRoute
   '/mothers/$motherId/anc-visit': typeof MothersMotherIdAncVisitRoute
@@ -82,6 +89,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/alerts': typeof AlertsRoute
   '/login': typeof LoginRoute
+  '/admin/nurses': typeof AdminNursesRoute
   '/mothers/register': typeof MothersRegisterRoute
   '/mothers/search': typeof MothersSearchRoute
   '/mothers/$motherId/anc-visit': typeof MothersMotherIdAncVisitRoute
@@ -94,6 +102,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/alerts': typeof AlertsRoute
   '/login': typeof LoginRoute
+  '/admin/nurses': typeof AdminNursesRoute
   '/mothers/register': typeof MothersRegisterRoute
   '/mothers/search': typeof MothersSearchRoute
   '/mothers/$motherId/anc-visit': typeof MothersMotherIdAncVisitRoute
@@ -107,6 +116,7 @@ export interface FileRouteTypes {
     | '/'
     | '/alerts'
     | '/login'
+    | '/admin/nurses'
     | '/mothers/register'
     | '/mothers/search'
     | '/mothers/$motherId/anc-visit'
@@ -118,6 +128,7 @@ export interface FileRouteTypes {
     | '/'
     | '/alerts'
     | '/login'
+    | '/admin/nurses'
     | '/mothers/register'
     | '/mothers/search'
     | '/mothers/$motherId/anc-visit'
@@ -129,6 +140,7 @@ export interface FileRouteTypes {
     | '/'
     | '/alerts'
     | '/login'
+    | '/admin/nurses'
     | '/mothers/register'
     | '/mothers/search'
     | '/mothers/$motherId/anc-visit'
@@ -141,6 +153,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AlertsRoute: typeof AlertsRoute
   LoginRoute: typeof LoginRoute
+  AdminNursesRoute: typeof AdminNursesRoute
   MothersRegisterRoute: typeof MothersRegisterRoute
   MothersSearchRoute: typeof MothersSearchRoute
   MothersMotherIdAncVisitRoute: typeof MothersMotherIdAncVisitRoute
@@ -170,6 +183,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/nurses': {
+      id: '/admin/nurses'
+      path: '/admin/nurses'
+      fullPath: '/admin/nurses'
+      preLoaderRoute: typeof AdminNursesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/mothers/register': {
@@ -221,6 +241,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AlertsRoute: AlertsRoute,
   LoginRoute: LoginRoute,
+  AdminNursesRoute: AdminNursesRoute,
   MothersRegisterRoute: MothersRegisterRoute,
   MothersSearchRoute: MothersSearchRoute,
   MothersMotherIdAncVisitRoute: MothersMotherIdAncVisitRoute,

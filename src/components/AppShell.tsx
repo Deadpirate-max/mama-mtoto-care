@@ -1,9 +1,9 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import type { ComponentType } from "react";
-import { Bell, Home, LogOut, Search, UserPlus } from "lucide-react";
+import { Bell, Home, KeyRound, LogOut, Search, UserPlus, Shield } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
-// Removed: import { isOffline, onOfflineChange } from "@/lib/api";
 import { useRequireAuth, useSignOut } from "@/lib/auth";
+import { ChangePinModal } from "./ChangePinModal";
 
 const BackLink = Link as unknown as ComponentType<{
   to: string;
@@ -11,15 +11,6 @@ const BackLink = Link as unknown as ComponentType<{
   className?: string;
   children: ReactNode;
 }>;
-
-const nav = [
-  { to: "/", label: "Home", icon: Home },
-  { to: "/mothers/search", label: "Search", icon: Search },
-  { to: "/mothers/register", label: "Register", icon: UserPlus },
-  { to: "/alerts", label: "Alerts", icon: Bell },
-] as const;
-
-// Removed the entire OfflineBanner component
 
 export function AppShell({
   title,
@@ -33,6 +24,7 @@ export function AppShell({
   children: ReactNode;
 }) {
   const { ready, user } = useRequireAuth();
+  const [showPinModal, setShowPinModal] = useState(false);
   const signOut = useSignOut();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
@@ -44,24 +36,33 @@ export function AppShell({
     );
   }
 
+  // 👇 1. Define base navigation
+  const baseNav = [
+    { to: "/", label: "Home", icon: Home },
+    { to: "/mothers/search", label: "Search", icon: Search },
+    { to: "/mothers/register", label: "Register", icon: UserPlus },
+    { to: "/alerts", label: "Alerts", icon: Bell },
+  ];
+
+  // 👇 2. Check if user is an Admin
+  const isAdmin = user.role === "facility_admin" || user.role === "super_admin";
+
+  // 👇 3. Inject the "Nurses" tab if they are an Admin
+  const nav = isAdmin
+    ? [...baseNav, { to: "/admin/nurses", label: "Nurses", icon: Shield }]
+    : baseNav;
+
   return (
     <div className="min-h-screen bg-muted/40 pb-24">
-      {/* Removed <OfflineBanner /> */}
       <header className="sticky top-0 z-20 bg-gradient-brand px-4 py-4 text-primary-foreground shadow-brand">
-        <div className="mx-auto flex max-w-3xl items-start justify-between gap-3">
-          <div className="min-w-0">
-            {back && (
-              <BackLink
-                to={back.to}
-                {...(back.params ? { params: back.params } : {})}
-                className="mb-1 inline-block text-xs opacity-80 hover:opacity-100"
-              >
-                ← Back
-              </BackLink>
-            )}
-            <h1 className="truncate text-lg font-bold leading-tight">{title}</h1>
-            <p className="truncate text-xs opacity-85">{subtitle ?? user.facility}</p>
-          </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowPinModal(true)}
+            className="rounded-lg bg-white/15 p-2 transition-colors hover:bg-white/25"
+            title="Change PIN"
+          >
+            <KeyRound className="h-4 w-4" />
+          </button>
           <button
             onClick={signOut}
             aria-label="Sign out"
@@ -94,6 +95,7 @@ export function AppShell({
           })}
         </div>
       </nav>
+      <ChangePinModal isOpen={showPinModal} onClose={() => setShowPinModal(false)} />
     </div>
   );
 }

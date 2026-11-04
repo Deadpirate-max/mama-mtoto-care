@@ -35,39 +35,32 @@ function NotFoundComponent() {
   );
 }
 
-function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
-  console.error(error);
-  const router = useRouter();
-  useEffect(() => {
-    reportLovableError(error, { boundary: "tanstack_root_error_component" });
-  }, [error]);
+import { type ErrorComponentProps } from "@tanstack/react-router";
+
+function ErrorComponent({ error }: ErrorComponentProps) {
+  // 👇 Safely extract the message if it's an object
+  const message =
+    typeof error === "string" ? error : (error as any)?.message || JSON.stringify(error);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          This page didn't load
-        </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Something went wrong on our end. You can try refreshing or head back home.
-        </p>
-        <div className="mt-6 flex flex-wrap justify-center gap-2">
-          <button
-            onClick={() => {
-              router.invalidate();
-              reset();
-            }}
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            Try again
-          </button>
-          <a
-            href="/"
-            className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
-          >
-            Go home
-          </a>
-        </div>
+    <div className="flex min-h-screen flex-col items-center justify-center p-4 text-center">
+      <h2 className="text-xl font-bold mb-2">This page didn't load</h2>
+      <p className="text-sm text-muted-foreground mb-4">
+        {message || "Something went wrong on our end. You can try refreshing or head back home."}
+      </p>
+      <div className="flex gap-2">
+        <button
+          onClick={() => window.location.reload()}
+          className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white"
+        >
+          Try again
+        </button>
+        <a
+          href="/"
+          className="rounded-xl border border-input bg-background px-4 py-2 text-sm font-semibold"
+        >
+          Go home
+        </a>
       </div>
     </div>
   );

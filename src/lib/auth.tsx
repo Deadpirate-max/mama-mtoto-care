@@ -32,3 +32,24 @@ export function useSignOut() {
     navigate({ to: "/login", replace: true });
   };
 }
+
+// 👇 NEW ROLE GUARD HOOK
+export function useRequireRole(allowedRoles: string[]) {
+  const navigate = useNavigate();
+  const { ready, user } = useSession();
+
+  useEffect(() => {
+    if (ready) {
+      if (!user) {
+        // Not logged in -> go to login
+        navigate({ to: "/login", replace: true });
+      } else if (!allowedRoles.includes(user.role)) {
+        // Logged in but wrong role -> go home
+        navigate({ to: "/", replace: true });
+      }
+    }
+    // We pass allowedRoles as a string to prevent infinite re-renders
+  }, [ready, user, navigate, allowedRoles.join(",")]);
+
+  return { ready, user };
+}

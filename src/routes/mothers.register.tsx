@@ -5,6 +5,7 @@ import { CheckCircle2, MessageSquare } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Field, inputClass } from "@/components/Field";
 import { api, getStoredUser, type Mother } from "@/lib/api";
+import { useQueryClient } from "@tanstack/react-query";
 
 export const Route = createFileRoute("/mothers/register")({
   head: () => ({
@@ -36,6 +37,7 @@ function addDays(dateStr: string, days: number) {
 function RegisterMother() {
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
+  const queryClient = useQueryClient();
   const [done, setDone] = useState<{ mother: Mother; smsSent: boolean } | null>(null);
   const [form, setForm] = useState({
     name: "",
@@ -76,6 +78,7 @@ function RegisterMother() {
 
     setBusy(true);
     try {
+      // Find this in the submit function
       const res = await api.registerMother({
         name: form.name.trim(),
         phone: form.phone.replace(/\s/g, ""),
@@ -89,9 +92,12 @@ function RegisterMother() {
         nurse_name: user.name,
         nurse_phone: user.phone,
         facility_name: user.facility,
-        facility_code: (user as any).facilityCode || "",
+        facility_code: user.facility,
         nextAppointment: null,
       });
+      queryClient.invalidateQueries({ queryKey: ["mothers"] });
+      queryClient.invalidateQueries({ queryKey: ["stats"] });
+
       setDone(res);
       toast.success("Mother registered");
     } catch (err) {

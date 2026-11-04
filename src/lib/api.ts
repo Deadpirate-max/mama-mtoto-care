@@ -231,7 +231,7 @@ export const api = {
       body: input,
     }),
   chvLogin: (phone: string, pin: string) =>
-    request<{ token: string; user: Nurse }>("/chv/login", {
+    request<{ token: string; user: Nurse }>("/nurses/login", {
       method: "POST",
       body: { phone, pin },
     }),
@@ -250,6 +250,11 @@ export const api = {
   alerts: () => request<Alert[]>(ENDPOINTS.alerts, {}),
   updateAlert: (id: string, status: Alert["status"]) =>
     request<Alert>(`${ENDPOINTS.alerts}/${id}`, { method: "PATCH", body: { status } }),
+  changePin: (currentPin: string, newPin: string) =>
+    request<{ message: string }>("/nurses/change-pin", {
+      method: "POST",
+      body: { currentPin, newPin },
+    }),
 };
 
 /* ------------------------------ shared helpers ----------------------------- */
