@@ -3,8 +3,11 @@ import { useState, useEffect } from "react";
 import { AppShell } from "@/components/AppShell";
 import { useRequireRole } from "@/lib/auth";
 import { toast } from "sonner";
-import { UserPlus, ShieldPlus, Building2 } from "lucide-react";
+import { UserPlus, ShieldPlus, Building2, Loader2, Users, Phone, Shield } from "lucide-react";
 import { API_BASE, getToken } from "@/lib/api";
+import { Field, inputClass } from "@/components/Field";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/admin/nurses")({
   component: ManageNursesPage,
@@ -62,7 +65,6 @@ function ManageNursesPage() {
   const handleInviteNurse = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    // 👇 FIXED: Wrapped in braces and used explicit return
     if (user?.role === "super_admin" && !inviteFacility) {
       toast.error("Please select a facility");
       return;
@@ -76,7 +78,7 @@ function ManageNursesPage() {
       });
       const json = await res.json();
       if (json.success) {
-        toast.success("Invite sent!");
+        toast.success("Invite sent successfully!");
         setInvitePhone("");
         fetchData();
       } else {
@@ -90,7 +92,6 @@ function ManageNursesPage() {
   const handleCreateAdmin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    // 👇 FIXED: Wrapped in braces and used explicit return
     if (!adminFacility) {
       toast.error("Please select a facility");
       return;
@@ -134,6 +135,7 @@ function ManageNursesPage() {
         toast.success("Facility created!");
         setNewFacName("");
         setNewFacCode("");
+        setNewFacCounty("");
         fetchData();
       } else {
         toast.error(json.error);
@@ -143,56 +145,67 @@ function ManageNursesPage() {
     }
   };
 
-  if (loading)
+  if (loading) {
     return (
       <AppShell title="Manage Staff">
-        <div>Loading...</div>
+        <div className="flex h-40 items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
       </AppShell>
     );
+  }
 
   return (
     <AppShell
       title="Manage Staff"
       subtitle={user?.role === "super_admin" ? "System Administration" : `${user?.facility} Staff`}
     >
-      <div className="space-y-6 pb-20">
+      <div className="mx-auto max-w-3xl space-y-6 pb-20">
         {/* SUPER ADMIN: Create Facility */}
         {user?.role === "super_admin" && (
-          <div className="rounded-2xl bg-indigo-50 p-5 shadow-sm border border-indigo-100">
-            <div className="flex items-center gap-2 mb-4">
-              <Building2 className="h-5 w-5 text-indigo-600" />
-              <h2 className="font-semibold text-lg text-indigo-900">Create Facility</h2>
-            </div>
-            <form onSubmit={handleCreateFacility} className="space-y-3">
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={newFacName}
-                  onChange={(e) => setNewFacName(e.target.value)}
-                  placeholder="Facility Name"
-                  className="flex-1 rounded-xl border border-indigo-200 px-4 py-2 text-sm"
-                  required
-                />
-                <input
-                  type="text"
-                  value={newFacCode}
-                  onChange={(e) => setNewFacCode(e.target.value)}
-                  placeholder="Code (e.g. KCH-001)"
-                  className="w-32 rounded-xl border border-indigo-200 px-4 py-2 text-sm"
-                  required
-                />
+          <div className="card-surface">
+            <div className="mb-5 flex items-center gap-3 border-b border-border pb-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <Building2 className="h-4 w-4" />
               </div>
-              <input
-                type="text"
-                value={newFacCounty}
-                onChange={(e) => setNewFacCounty(e.target.value)}
-                placeholder="County"
-                className="w-full rounded-xl border border-indigo-200 px-4 py-2 text-sm"
-                required
-              />
+              <h2 className="text-lg font-bold tracking-tight text-foreground">Create Facility</h2>
+            </div>
+            <form onSubmit={handleCreateFacility} className="space-y-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Field label="Facility Name" required>
+                  <input
+                    type="text"
+                    value={newFacName}
+                    onChange={(e) => setNewFacName(e.target.value)}
+                    placeholder="e.g. Kenyatta National Hospital"
+                    className={inputClass()}
+                    required
+                  />
+                </Field>
+                <Field label="Code" required>
+                  <input
+                    type="text"
+                    value={newFacCode}
+                    onChange={(e) => setNewFacCode(e.target.value)}
+                    placeholder="e.g. KNH-001"
+                    className={inputClass()}
+                    required
+                  />
+                </Field>
+              </div>
+              <Field label="County" required>
+                <input
+                  type="text"
+                  value={newFacCounty}
+                  onChange={(e) => setNewFacCounty(e.target.value)}
+                  placeholder="e.g. Nairobi"
+                  className={inputClass()}
+                  required
+                />
+              </Field>
               <button
                 type="submit"
-                className="w-full rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white"
+                className="mt-2 w-full rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground shadow-brand transition-colors hover:bg-primary/90"
               >
                 Create Facility
               </button>
@@ -202,44 +215,54 @@ function ManageNursesPage() {
 
         {/* SUPER ADMIN: Create Facility Admin */}
         {user?.role === "super_admin" && (
-          <div className="rounded-2xl bg-card p-5 shadow-sm border border-border">
-            <div className="flex items-center gap-2 mb-4">
-              <ShieldPlus className="h-5 w-5 text-primary" />
-              <h2 className="font-semibold text-lg">Create Facility Admin</h2>
+          <div className="card-surface">
+            <div className="mb-5 flex items-center gap-3 border-b border-border pb-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <ShieldPlus className="h-4 w-4" />
+              </div>
+              <h2 className="text-lg font-bold tracking-tight text-foreground">
+                Create Facility Admin
+              </h2>
             </div>
-            <form onSubmit={handleCreateAdmin} className="space-y-3">
-              <input
-                type="text"
-                value={adminName}
-                onChange={(e) => setAdminName(e.target.value)}
-                placeholder="Admin Name"
-                className="w-full rounded-xl border border-input px-4 py-2 text-sm"
-                required
-              />
-              <input
-                type="tel"
-                value={adminPhone}
-                onChange={(e) => setAdminPhone(e.target.value)}
-                placeholder="+254712345678"
-                className="w-full rounded-xl border border-input px-4 py-2 text-sm"
-                required
-              />
-              <select
-                value={adminFacility}
-                onChange={(e) => setAdminFacility(e.target.value)}
-                className="w-full rounded-xl border border-input px-4 py-2 text-sm bg-white"
-                required
-              >
-                <option value="">Select Facility...</option>
-                {facilities.map((f) => (
-                  <option key={f.code} value={f.code}>
-                    {f.name} ({f.code})
-                  </option>
-                ))}
-              </select>
+            <form onSubmit={handleCreateAdmin} className="space-y-4">
+              <Field label="Admin Name" required>
+                <input
+                  type="text"
+                  value={adminName}
+                  onChange={(e) => setAdminName(e.target.value)}
+                  placeholder="e.g. Dr. Jane Doe"
+                  className={inputClass()}
+                  required
+                />
+              </Field>
+              <Field label="Phone Number" required>
+                <input
+                  type="tel"
+                  value={adminPhone}
+                  onChange={(e) => setAdminPhone(e.target.value)}
+                  placeholder="+254712345678"
+                  className={inputClass()}
+                  required
+                />
+              </Field>
+              <Field label="Assign to Facility" required>
+                <select
+                  value={adminFacility}
+                  onChange={(e) => setAdminFacility(e.target.value)}
+                  className={inputClass()}
+                  required
+                >
+                  <option value="">Select Facility...</option>
+                  {facilities.map((f) => (
+                    <option key={f.code} value={f.code}>
+                      {f.name} ({f.code})
+                    </option>
+                  ))}
+                </select>
+              </Field>
               <button
                 type="submit"
-                className="w-full rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white"
+                className="mt-2 w-full rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground shadow-brand transition-colors hover:bg-primary/90"
               >
                 Create Admin
               </button>
@@ -248,38 +271,44 @@ function ManageNursesPage() {
         )}
 
         {/* ALL ADMINS: Invite Nurse */}
-        <div className="rounded-2xl bg-card p-5 shadow-sm border border-border">
-          <div className="flex items-center gap-2 mb-4">
-            <UserPlus className="h-5 w-5 text-primary" />
-            <h2 className="font-semibold text-lg">Invite a Nurse</h2>
+        <div className="card-surface">
+          <div className="mb-5 flex items-center gap-3 border-b border-border pb-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <UserPlus className="h-4 w-4" />
+            </div>
+            <h2 className="text-lg font-bold tracking-tight text-foreground">Invite a Nurse</h2>
           </div>
-          <form onSubmit={handleInviteNurse} className="space-y-3">
-            <input
-              type="tel"
-              value={invitePhone}
-              onChange={(e) => setInvitePhone(e.target.value)}
-              placeholder="+254712345678"
-              className="w-full rounded-xl border border-input px-4 py-2 text-sm"
-              required
-            />
-            {user?.role === "super_admin" && (
-              <select
-                value={inviteFacility}
-                onChange={(e) => setInviteFacility(e.target.value)}
-                className="w-full rounded-xl border border-input px-4 py-2 text-sm bg-white"
+          <form onSubmit={handleInviteNurse} className="space-y-4">
+            <Field label="Nurse Phone Number" required>
+              <input
+                type="tel"
+                value={invitePhone}
+                onChange={(e) => setInvitePhone(e.target.value)}
+                placeholder="+254712345678"
+                className={inputClass()}
                 required
-              >
-                <option value="">Select Facility...</option>
-                {facilities.map((f) => (
-                  <option key={f.code} value={f.code}>
-                    {f.name} ({f.code})
-                  </option>
-                ))}
-              </select>
+              />
+            </Field>
+            {user?.role === "super_admin" && (
+              <Field label="Assign to Facility" required>
+                <select
+                  value={inviteFacility}
+                  onChange={(e) => setInviteFacility(e.target.value)}
+                  className={inputClass()}
+                  required
+                >
+                  <option value="">Select Facility...</option>
+                  {facilities.map((f) => (
+                    <option key={f.code} value={f.code}>
+                      {f.name} ({f.code})
+                    </option>
+                  ))}
+                </select>
+              </Field>
             )}
             <button
               type="submit"
-              className="w-full rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white"
+              className="mt-2 w-full rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground shadow-brand transition-colors hover:bg-primary/90"
             >
               Send Invite
             </button>
@@ -287,29 +316,50 @@ function ManageNursesPage() {
         </div>
 
         {/* Active Staff List */}
-        <div className="rounded-2xl bg-card p-5 shadow-sm border border-border">
-          <h2 className="font-semibold text-lg mb-4">Active Staff</h2>
-          <div className="space-y-3">
-            {nurses.map((nurse) => (
-              <div
-                key={nurse.id}
-                className="flex items-center justify-between p-3 rounded-xl border border-border"
-              >
-                <div>
-                  <p className="font-medium">{nurse.name}</p>
-                  <p className="text-xs text-muted-foreground">{nurse.phone}</p>
-                  <p className="text-[10px] text-primary/80 uppercase font-bold mt-1">
-                    {nurse.role} · {nurse.facility_code}
-                  </p>
-                </div>
-                <span
-                  className={`text-xs font-semibold px-2 py-1 rounded-full ${nurse.status === "active" ? "text-green-600 bg-green-50" : "text-amber-600 bg-amber-50"}`}
-                >
-                  {nurse.status}
-                </span>
-              </div>
-            ))}
+        <div>
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight text-foreground">
+              <Users className="h-5 w-5 text-muted-foreground" />
+              Active Staff
+            </h2>
+            <Badge tone="neutral">{nurses.length} total</Badge>
           </div>
+
+          {nurses.length === 0 ? (
+            <div className="card-surface flex flex-col items-center justify-center p-8 text-center">
+              <Users className="mb-3 h-10 w-10 text-muted-foreground/50" />
+              <p className="text-sm font-semibold text-foreground">No staff found</p>
+              <p className="text-xs text-muted-foreground">Invite a nurse to get started.</p>
+            </div>
+          ) : (
+            <div className="card-surface overflow-hidden p-0">
+              <ul className="divide-y divide-border">
+                {nurses.map((nurse) => (
+                  <li key={nurse.id} className="flex items-center gap-4 p-4">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-baby-soft text-sm font-bold text-baby">
+                      {nurse.name?.charAt(0).toUpperCase() || "?"}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-bold text-foreground">{nurse.name}</p>
+                      <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <Phone className="h-3 w-3" />
+                          {nurse.phone}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Shield className="h-3 w-3" />
+                          {nurse.role} · {nurse.facility_code}
+                        </span>
+                      </div>
+                    </div>
+                    <Badge tone={nurse.status === "active" ? "success" : "warning"}>
+                      {nurse.status}
+                    </Badge>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       </div>
     </AppShell>

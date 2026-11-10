@@ -1,5 +1,13 @@
-import { AlertTriangle, X, AlertOctagon } from "lucide-react";
+import { AlertOctagon, AlertTriangle } from "lucide-react";
 import type { ClinicalFlag } from "@/lib/clinicalFlags";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
 
 export function ClinicalFlagModal({
   visible,
@@ -10,94 +18,80 @@ export function ClinicalFlagModal({
   flags: ClinicalFlag[];
   onDismiss: () => void;
 }) {
-  if (!visible || flags.length === 0) return null;
+  if (flags.length === 0) return null;
 
   const criticalCount = flags.filter((f) => f.severity === "critical").length;
+  const hasCritical = criticalCount > 0;
+  const HeaderIcon = hasCritical ? AlertOctagon : AlertTriangle;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-4 sm:items-center">
-      <div className="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl">
-        {/* Header */}
-        <div
-          className={`flex items-center gap-3 p-4 ${
-            criticalCount > 0
-              ? "bg-gradient-to-r from-red-600 to-red-500"
-              : "bg-gradient-to-r from-orange-500 to-amber-500"
-          } text-white`}
-        >
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/20">
-            {criticalCount > 0 ? (
-              <AlertOctagon className="h-6 w-6" />
-            ) : (
-              <AlertTriangle className="h-6 w-6" />
-            )}
-          </div>
-          <div className="flex-1">
-            <p className="text-sm font-black uppercase tracking-wide">
-              {criticalCount > 0
-                ? `🚨 ${criticalCount} Critical Finding${criticalCount > 1 ? "s" : ""}`
-                : "⚠️ Clinical Warning"}
-            </p>
-            <p className="text-xs opacity-95">Clinical decision support — review before saving</p>
-          </div>
-          <button
-            onClick={onDismiss}
-            className="rounded-full bg-white/20 p-2 transition hover:bg-white/30"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-
-        {/* Body */}
-        <div className="max-h-[60vh] space-y-3 overflow-y-auto p-4">
-          {flags.map((f, i) => (
-            <div
-              key={i}
-              className={`rounded-xl border-2 p-4 ${
-                f.severity === "critical"
-                  ? "border-red-300 bg-red-50"
-                  : "border-orange-300 bg-orange-50"
-              }`}
+    <Dialog open={visible} onOpenChange={(open) => !open && onDismiss()}>
+      <DialogContent className="max-w-lg gap-0 overflow-hidden rounded-2xl p-0">
+        <DialogHeader className="space-y-0 border-b border-border p-5 text-left">
+          <div className="flex items-center gap-3">
+            <span
+              className={cn(
+                "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl",
+                hasCritical
+                  ? "bg-critical text-critical-foreground"
+                  : "bg-warning text-warning-foreground",
+              )}
             >
-              <div className="flex items-start gap-2">
-                <span className="text-lg leading-none">
-                  {f.severity === "critical" ? "🚨" : "⚠️"}
-                </span>
-                <div className="flex-1">
-                  <p
-                    className={`text-xs font-black uppercase tracking-wide ${
-                      f.severity === "critical" ? "text-red-700" : "text-orange-700"
-                    }`}
-                  >
-                    {f.condition}
-                  </p>
-                  <p className="mt-1 text-xs font-medium text-gray-700">{f.finding}</p>
-                  <div className="mt-3 rounded-lg bg-white/70 p-3">
-                    <p className="text-[10px] font-black uppercase tracking-wide text-gray-500">
-                      Recommended Action
-                    </p>
-                    <p className="mt-1 text-xs font-bold text-gray-900">{f.action}</p>
-                  </div>
-                </div>
-              </div>
+              <HeaderIcon className="h-6 w-6" aria-hidden />
+            </span>
+            <div className="min-w-0">
+              <DialogTitle className="text-lg leading-snug">
+                {hasCritical
+                  ? `${criticalCount} critical finding${criticalCount > 1 ? "s" : ""} need action`
+                  : "Please review before saving"}
+              </DialogTitle>
+              <DialogDescription>
+                Clinical decision support. The final decision is yours.
+              </DialogDescription>
             </div>
-          ))}
+          </div>
+        </DialogHeader>
+
+        <div className="max-h-[60vh] space-y-3 overflow-y-auto p-5">
+          {flags.map((f, i) => {
+            const critical = f.severity === "critical";
+            return (
+              <section
+                key={i}
+                className={cn(
+                  "rounded-xl border p-4",
+                  critical
+                    ? "border-critical-line bg-critical-soft"
+                    : "border-warning-line bg-warning-soft",
+                )}
+              >
+                <h3
+                  className={cn("text-base font-bold", critical ? "text-critical" : "text-warning")}
+                >
+                  {f.condition}
+                </h3>
+                <p className="mt-1 text-sm text-foreground">{f.finding}</p>
+                <div className="mt-3 rounded-lg bg-card p-3">
+                  <p className="text-xs font-medium text-muted-foreground">What to do</p>
+                  <p className="mt-0.5 text-sm font-medium text-foreground">{f.action}</p>
+                </div>
+              </section>
+            );
+          })}
         </div>
 
-        {/* Footer */}
-        <div className="flex gap-3 border-t border-gray-100 bg-gray-50 p-4">
+        <div className="border-t border-border bg-card p-5">
           <button
             onClick={onDismiss}
-            className="flex-1 rounded-xl bg-purple-600 py-3 text-sm font-bold text-white shadow-md transition active:scale-[0.98]"
+            className="min-h-12 w-full rounded-xl bg-primary text-sm font-bold text-primary-foreground transition active:scale-[0.99]"
           >
-            I've reviewed — continue
+            I have reviewed this, continue
           </button>
+          <p className="mt-3 text-center text-xs text-muted-foreground">
+            This is a decision support tool. It does not replace your clinical judgment.
+          </p>
         </div>
-
-        <p className="border-t border-gray-100 bg-white px-4 py-3 text-center text-[10px] italic text-gray-500">
-          This is a clinical decision support tool. Final clinical judgment rests with the nurse.
-        </p>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -38,7 +38,7 @@ function NotFoundComponent() {
 import { type ErrorComponentProps } from "@tanstack/react-router";
 
 function ErrorComponent({ error }: ErrorComponentProps) {
-  // 👇 Safely extract the message if it's an object
+  //  Safely extract the message if it's an object
   const message =
     typeof error === "string" ? error : (error as any)?.message || JSON.stringify(error);
 

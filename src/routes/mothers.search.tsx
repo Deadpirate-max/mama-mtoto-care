@@ -1,22 +1,25 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState, useRef } from "react";
-import { Search as SearchIcon, Phone, ChevronRight, X, Loader2, UserSearch } from "lucide-react";
-import { api, type Mother } from "@/lib/api";
+import { useEffect, useState } from "react";
+import { Search, ChevronRight, User, Phone, MapPin, X, AlertCircle } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
+import { Badge } from "@/components/ui/badge";
+import { inputClass } from "@/components/Field";
+import { api, type Mother } from "@/lib/api";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/mothers/search")({
   component: SearchMothers,
 });
 
-function formatDate(date?: string | null): string {
+function formatDate(date: string | undefined | null): string {
   if (!date) return "—";
   try {
     const d = new Date(date);
-    if (isNaN(d.getTime())) return "—";
+    if (d.getFullYear() < 2000 || isNaN(d.getTime())) return "—";
     return d.toLocaleDateString("en-KE", {
       day: "numeric",
       month: "short",
-      year: "numeric",
+      year: "2-digit",
     });
   } catch {
     return "—";
@@ -25,162 +28,169 @@ function formatDate(date?: string | null): string {
 
 function SearchMothers() {
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<Mother[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [loaded, setLoaded] = useState(false);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [mothers, setMothers] = useState<Mother[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  // ── Fetch on query change (debounced 300ms) ──
+  // 👇 Debounced search effect
   useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
+    let mounted = true;
 
-    debounceRef.current = setTimeout(async () => {
-      setLoading(true);
-      try {
-        const data = await api.searchMothers(query.trim());
-        setResults(data || []);
-        setLoaded(true);
-      } catch (err) {
-        console.error("Search error:", err);
-        setResults([]);
-      } finally {
-        setLoading(false);
-      }
-    }, 300);
+    // If empty, fetch recent mothers. If typing, wait 300ms before hitting the API.
+    const delayDebounceFn = setTimeout(
+      async () => {
+        setLoading(true);
+        setError("");
+        try {
+          const results = await api.searchMothers(query);
+          if (mounted) setMothers(results || []);
+        } catch (err: any) {
+          if (mounted) setError(err.message || "Failed to search mothers");
+        } finally {
+          if (mounted) setLoading(false);
+        }
+      },
+      query ? 300 : 0,
+    );
 
     return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
+      mounted = false;
+      clearTimeout(delayDebounceFn);
     };
   }, [query]);
 
   return (
-    <AppShell title="Find a mother" subtitle="Search by name or phone">
-      <div className="space-y-4">
-        {/* ── Search bar ── */}
+    <AppShell title="Mothers" back={{ to: "/" }}>
+      <div className="mx-auto max-w-2xl space-y-6">
+        {/* ── SEARCH BAR ── */}
         <div className="relative">
-          <SearchIcon className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-purple-500" />
+          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+            <Search className="h-5 w-5 text-muted-foreground" />
+          </div>
           <input
             type="text"
-            inputMode="search"
+            className={inputClass("pl-11 pr-11 h-14 text-base shadow-sm")}
+            placeholder="Search by name, phone, or ID..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Name or phone (e.g. 0795094349)"
-            className="w-full rounded-2xl border-2 border-purple-200 bg-white py-3.5 pl-11 pr-11 text-sm font-medium text-gray-900 shadow-sm outline-none transition focus:border-purple-500 focus:ring-4 focus:ring-purple-100"
             autoFocus
           />
           {query.length > 0 && (
             <button
               onClick={() => setQuery("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-gray-100 p-1.5 text-gray-500 transition active:scale-90"
+              className="absolute inset-y-0 right-0 flex items-center pr-4 text-muted-foreground hover:text-foreground"
             >
-              <X className="h-3.5 w-3.5" />
+              <X className="h-5 w-5" />
             </button>
-          )}
-          {loading && (
-            <div className="absolute right-3 top-1/2 -translate-y-1/2">
-              <Loader2 className="h-4 w-4 animate-spin text-purple-500" />
-            </div>
           )}
         </div>
 
-        {/* ── Helper text ── */}
-        <p className="px-1 text-xs text-gray-500">
-          Tip: search <span className="font-mono font-bold text-purple-700">0795…</span> or{" "}
-          <span className="font-mono font-bold text-purple-700">254795…</span> — both work.
-        </p>
-
-        {/* ── Results ── */}
-        {!loaded && !loading ? (
-          <EmptyState
-            icon={<UserSearch className="h-7 w-7" />}
-            title="Start typing"
-            subtitle="Search by name or phone number"
-          />
-        ) : loading && results.length === 0 ? (
-          <LoadingState />
-        ) : results.length === 0 ? (
-          <EmptyState
-            icon={<SearchIcon className="h-7 w-7" />}
-            title="No matches"
-            subtitle={`No mother found for "${query}"`}
-          />
-        ) : (
-          <>
-            <p className="px-1 text-xs font-bold uppercase tracking-wide text-gray-500">
-              {results.length} result{results.length !== 1 ? "s" : ""}
+        {/* ── RESULTS ── */}
+        {error ? (
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-critical-line bg-critical-soft p-8 text-center">
+            <AlertCircle className="mb-3 h-8 w-8 text-critical" />
+            <p className="font-semibold text-critical">Error searching</p>
+            <p className="text-sm text-critical/80">{error}</p>
+          </div>
+        ) : loading ? (
+          <div className="space-y-3">
+            {[1, 2, 3, 4].map((i) => (
+              <div
+                key={i}
+                className="h-20 animate-pulse rounded-2xl border border-border bg-muted/50"
+              />
+            ))}
+          </div>
+        ) : mothers.length === 0 ? (
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card p-12 text-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted">
+              <User className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <p className="mt-4 font-bold text-foreground">No mothers found</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {query
+                ? `No results for "${query}". Try a different name or phone number.`
+                : "You haven't registered any mothers yet."}
             </p>
-            <div className="overflow-hidden rounded-2xl border-2 border-purple-100 bg-white shadow-sm">
-              {results.map((m, i) => (
+            {query && (
+              <button
+                onClick={() => setQuery("")}
+                className="mt-4 text-sm font-semibold text-primary hover:underline"
+              >
+                Clear search
+              </button>
+            )}
+          </div>
+        ) : (
+          <div>
+            <h2 className="mb-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              {query ? "Search Results" : "Recently Registered"}
+            </h2>
+            <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+              {mothers.map((mother, i) => (
                 <Link
-                  key={m.id}
+                  key={mother.id}
                   to="/mothers/$motherId"
-                  params={{ motherId: m.id }}
-                  className={`flex items-center gap-3 px-4 py-3 transition hover:bg-purple-50 active:bg-purple-100 ${
-                    i !== results.length - 1 ? "border-b border-purple-100" : ""
-                  }`}
+                  params={{ motherId: mother.id }}
+                  className={cn(
+                    "group flex items-center gap-4 p-4 transition-colors hover:bg-muted/50",
+                    i !== mothers.length - 1 && "border-b border-border",
+                  )}
                 >
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-purple-500 to-purple-700 text-sm font-black text-white shadow-md">
-                    {m.name?.charAt(0).toUpperCase() || "?"}
+                  {/* Avatar */}
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-baby-soft text-base font-bold text-baby">
+                    {mother.name?.charAt(0).toUpperCase() || "?"}
                   </div>
+
+                  {/* Details */}
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-bold text-gray-900">
-                      {m.name || "Unknown"}
-                    </p>
-                    <p className="flex items-center gap-1 truncate text-xs text-gray-500">
-                      <Phone className="h-3 w-3" />
-                      {m.phone}
-                      {m.county && m.county !== "N/A" && <> · {m.county}</>}
-                    </p>
-                    {m.edd && (
-                      <p className="mt-0.5 text-[11px] font-semibold text-purple-600">
-                        EDD {formatDate(m.edd)}
+                    <div className="flex items-center gap-2">
+                      <p className="truncate font-bold text-foreground">
+                        {mother.name || "Unknown"}
                       </p>
-                    )}
+                      {mother.riskLevel === "high" ? (
+                        <Badge tone="critical">High Risk</Badge>
+                      ) : mother.riskLevel === "medium" ? (
+                        <Badge tone="warning">Medium Risk</Badge>
+                      ) : (
+                        <Badge tone="success">Stable</Badge>
+                      )}
+                    </div>
+
+                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <Phone className="h-3 w-3" />
+                        {mother.phone}
+                      </span>
+                      {(mother.village || mother.county) && (
+                        <span className="flex items-center gap-1">
+                          <MapPin className="h-3 w-3" />
+                          {[mother.village, mother.county].filter(Boolean).join(", ")}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <ChevronRight className="h-4 w-4 shrink-0 text-purple-400" />
+
+                  {/* EDD & Chevron */}
+                  <div className="flex shrink-0 items-center gap-4">
+                    {mother.edd && (
+                      <div className="hidden text-right sm:block">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                          EDD
+                        </p>
+                        <p className="text-sm font-semibold text-foreground">
+                          {formatDate(mother.edd)}
+                        </p>
+                      </div>
+                    )}
+                    <ChevronRight className="h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1" />
+                  </div>
                 </Link>
               ))}
             </div>
-          </>
+          </div>
         )}
-
-        <div className="h-4" />
       </div>
     </AppShell>
-  );
-}
-
-// ── Helper components ─────────────────────────────────────────────────────
-
-function EmptyState({
-  icon,
-  title,
-  subtitle,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  subtitle: string;
-}) {
-  return (
-    <div className="rounded-2xl border-2 border-purple-100 bg-white p-8 text-center">
-      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-purple-100 text-purple-600">
-        {icon}
-      </div>
-      <p className="mt-3 text-sm font-bold text-gray-900">{title}</p>
-      <p className="text-xs text-gray-500">{subtitle}</p>
-    </div>
-  );
-}
-
-function LoadingState() {
-  return (
-    <div className="space-y-2">
-      {[1, 2, 3].map((i) => (
-        <div
-          key={i}
-          className="h-16 animate-pulse rounded-2xl border-2 border-purple-100 bg-white"
-        />
-      ))}
-    </div>
   );
 }

@@ -1,21 +1,16 @@
 /**
  * REST client for the Mama na Mtoto+ API.
  *
- * All endpoints now point directly to the live Railway backend.
- * No mock data or fallback logic. Errors will be thrown loudly.
+ * All endpoints point directly to the live Railway backend.
  */
+
 export const API_BASE = "https://mama-na-mtoto-api-production-523a.up.railway.app/api";
 
 export const ENDPOINTS = {
-  // These are for mothers (not used by dashboard, but keep for safety)
   requestOtp: "/auth/otp/request",
   verifyOtp: "/auth/otp/verify",
-
-  // CHV Dashboard endpoints
-  me: "/auth/me", // Added above
-  stats: "/chv/stats", // Already exists
-
-  // Mothers CRUD (your existing ones)
+  me: "/auth/me",
+  stats: "/chv/stats",
   registerMother: "/mothers",
   searchMothers: "/mothers/search",
   mother: (id: string) => `/mothers/id/${id}`,
@@ -28,11 +23,47 @@ export const ENDPOINTS = {
 const TOKEN_KEY = "mnm_token";
 const USER_KEY = "mnm_user";
 
-export type Nurse = { id: string; name: string; phone: string; facility: string; role: string };
+export type Nurse = {
+  id: string;
+  name: string;
+  phone: string;
+  facility: string;
+  role: string;
+};
+
+/* ---------------------------------- jwt ----------------------------------- */
+
+function decodeJwtPayload(token: string): Record<string, any> | null {
+  try {
+    const part = token.split(".")[1];
+    if (!part) return null;
+    // base64url -> base64
+    const b64 = part.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
+    return JSON.parse(atob(padded));
+  } catch {
+    return null;
+  }
+}
+
+function isTokenValid(token: string): boolean {
+  const payload = decodeJwtPayload(token);
+  if (!payload) return false;
+  if (typeof payload["exp"] !== "number") return true;
+  return payload["exp"] * 1000 > Date.now() + 30_000;
+}
+/* ------------------------------- session ---------------------------------- */
 
 export function getToken(): string | null {
   if (typeof window === "undefined") return null;
-  return window.localStorage.getItem(TOKEN_KEY);
+  const token = window.localStorage.getItem(TOKEN_KEY);
+  if (!token) return null;
+  if (!isTokenValid(token)) {
+    // Expired or malformed — clear so we don't fire doomed requests
+    clearSession();
+    return null;
+  }
+  return token;
 }
 
 export function getStoredUser(): Nurse | null {
@@ -56,27 +87,28 @@ export function clearSession() {
   window.localStorage.removeItem(USER_KEY);
 }
 
-// We remove the offline/fallback logic entirely.
 export function isOffline() {
   return false;
 }
-export async function createVisit(id: string, body: any) {
-  return request<any>(`/mothers/${id}/visits`, { method: "POST", body });
-}
+
+/* ------------------------------- api error -------------------------------- */
 
 export class ApiError extends Error {
   status: number;
   constructor(message: string, status: number) {
     super(message);
     this.status = status;
+    this.name = "ApiError";
   }
 }
 
-async function request<T>(
-  path: string,
-  options: { method?: string; body?: unknown } = {},
-): Promise<T> {
+/* --------------------------------- request -------------------------------- */
+
+type RequestOptions = { method?: string; body?: unknown; skipAuthRedirect?: boolean };
+
+async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const token = getToken();
+
   const res = await fetch(`${API_BASE}${path}`, {
     method: options.method ?? "GET",
     headers: {
@@ -97,12 +129,28 @@ async function request<T>(
   const payload = json as {
     success?: boolean;
     data?: unknown;
-    error?: { message?: string };
+    error?: string | { message?: string };
   } | null;
 
-  if (!res.ok || payload?.success === false) {
-    throw new ApiError(payload?.error?.message ?? `Request failed (${res.status})`, res.status);
+  // Central 401 handler — only fires for authenticated requests (token was sent).
+  // A 401 on /nurses/login means "wrong credentials" — must NOT clear/redirect.
+  if (res.status === 401 && token && !options.skipAuthRedirect) {
+    clearSession();
+    if (typeof window !== "undefined" && window.location.pathname !== "/login") {
+      window.location.assign("/login");
+    }
+    throw new ApiError("Session expired — please sign in again", 401);
   }
+
+  if (!res.ok || payload?.success === false) {
+    const errorMsg =
+      typeof payload?.error === "string"
+        ? payload.error
+        : ((payload?.error as { message?: string } | undefined)?.message ??
+          `Request failed (${res.status})`);
+    throw new ApiError(errorMsg, res.status);
+  }
+
   return (payload && "data" in payload ? payload.data : payload) as T;
 }
 
@@ -123,8 +171,6 @@ export type Mother = {
   riskLevel?: "low" | "medium" | "high";
   nextAppointment?: string | null;
   createdAt?: string;
-
-  // 🛡️ Nurse + facility fields (used in dashboard lists)
   county?: string;
   idNumber?: string;
   weeksPregnantAtRegistration?: number;
@@ -133,6 +179,7 @@ export type Mother = {
   facilityName?: string;
   facilityCode?: string;
 };
+
 export type AncVisit = {
   id: string;
   motherId: string;
@@ -149,6 +196,7 @@ export type AncVisit = {
   nextAppointment?: string | null;
   flags: string[];
 };
+
 export type LabResult = {
   id: string;
   motherId: string;
@@ -161,6 +209,7 @@ export type LabResult = {
   syphilis?: string;
   flags: string[];
 };
+
 export type Vaccination = {
   id: string;
   motherId: string;
@@ -171,6 +220,7 @@ export type Vaccination = {
   administeredBy?: string;
   nextDueDate?: string | null;
 };
+
 export type Alert = {
   id: string;
   motherId?: string;
@@ -190,6 +240,7 @@ export type Alert = {
   acknowledgedAt?: string;
   resolvedAt?: string;
 };
+
 export type Stats = {
   mothersRegistered: number;
   ancVisitsThisMonth: number;
@@ -204,12 +255,22 @@ export type Stats = {
 export const api = {
   requestOtp: (phone: string) =>
     request<{ sent: boolean }>(ENDPOINTS.requestOtp, { method: "POST", body: { phone } }),
+
   verifyOtp: (phone: string, code: string) =>
     request<{ token: string; user: Nurse }>(ENDPOINTS.verifyOtp, {
       method: "POST",
       body: { phone, code },
     }),
+
+  chvLogin: (phone: string, pin: string) =>
+    request<{ token: string; user: Nurse }>("/nurses/login", {
+      method: "POST",
+      body: { phone, pin },
+      skipAuthRedirect: true, // 401 here = wrong PIN, not expired session
+    }),
+
   stats: () => request<Stats>(ENDPOINTS.stats, {}),
+
   registerMother: (input: {
     name: string;
     phone: string;
@@ -230,13 +291,10 @@ export const api = {
       method: "POST",
       body: input,
     }),
-  chvLogin: (phone: string, pin: string) =>
-    request<{ token: string; user: Nurse }>("/nurses/login", {
-      method: "POST",
-      body: { phone, pin },
-    }),
+
   searchMothers: (q: string) =>
     request<Mother[]>(`${ENDPOINTS.searchMothers}?q=${encodeURIComponent(q)}`, {}),
+
   mother: (id: string) => request<Mother>(ENDPOINTS.mother(id), {}),
   visits: (id: string) => request<AncVisit[]>(ENDPOINTS.visits(id), {}),
   createVisit: (id: string, body: Omit<AncVisit, "id" | "motherId" | "flags">) =>
@@ -247,9 +305,11 @@ export const api = {
   vaccinations: (id: string) => request<Vaccination[]>(ENDPOINTS.vaccinations(id), {}),
   createVaccination: (id: string, body: Omit<Vaccination, "id" | "motherId">) =>
     request<Vaccination>(ENDPOINTS.vaccinations(id), { method: "POST", body }),
+
   alerts: () => request<Alert[]>(ENDPOINTS.alerts, {}),
   updateAlert: (id: string, status: Alert["status"]) =>
     request<Alert>(`${ENDPOINTS.alerts}/${id}`, { method: "PATCH", body: { status } }),
+
   changePin: (currentPin: string, newPin: string) =>
     request<{ message: string }>("/nurses/change-pin", {
       method: "POST",
@@ -258,6 +318,10 @@ export const api = {
 };
 
 /* ------------------------------ shared helpers ----------------------------- */
+
+export async function createVisit(id: string, body: unknown) {
+  return request<AncVisit>(`/mothers/${id}/visits`, { method: "POST", body });
+}
 
 export function flagVisit(v: {
   bpSystolic: number;

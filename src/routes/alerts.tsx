@@ -1,9 +1,20 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { AlertTriangle, CheckCircle2, Clock, Phone, ChevronRight, RefreshCw } from "lucide-react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Clock,
+  Phone,
+  ChevronRight,
+  RefreshCw,
+  ShieldAlert,
+  BellRing,
+} from "lucide-react";
 import { toast } from "sonner";
 import { api, type Alert } from "@/lib/api";
 import { AppShell } from "@/components/AppShell";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/alerts")({
   component: AlertsPage,
@@ -67,7 +78,6 @@ function AlertsPage() {
   const filtered = alerts.filter((a) => {
     if (filter === "all") return true;
     if (filter === "open") {
-      // Treat these as open
       return a.status === "open" || a.status === "sent" || a.status === "logged_no_sms";
     }
     return a.status === filter;
@@ -83,72 +93,81 @@ function AlertsPage() {
   };
 
   return (
-    <AppShell title="Alerts" subtitle="Danger signs & responses">
-      <div className="space-y-4">
-        {/* ── Refresh button ── */}
+    <AppShell
+      title="Alerts"
+      subtitle="Monitor and respond to danger signs"
+      alertCount={counts.open}
+    >
+      <div className="mx-auto max-w-3xl space-y-6">
+        {/* ── TOP BAR (Refresh) ── */}
         <div className="flex items-center justify-between">
-          <p className="text-xs text-gray-500">
+          <p className="text-sm font-medium text-muted-foreground">
             {counts.open > 0
-              ? `${counts.open} open alert${counts.open > 1 ? "s" : ""} need attention`
-              : "All caught up ✅"}
+              ? `You have ${counts.open} open alert${counts.open > 1 ? "s" : ""} requiring attention.`
+              : "No open alerts at the moment."}
           </p>
           <button
             onClick={load}
             disabled={loading}
-            className="flex items-center gap-1 rounded-lg bg-purple-100 px-3 py-1.5 text-xs font-bold text-purple-700 transition active:scale-95"
+            className="flex items-center gap-2 rounded-xl bg-card px-3 py-2 text-sm font-semibold text-foreground shadow-sm ring-1 ring-border transition-all hover:bg-muted active:scale-95 disabled:opacity-50"
           >
-            <RefreshCw className={`h-3 w-3 ${loading ? "animate-spin" : ""}`} />
+            <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
             Refresh
           </button>
         </div>
 
-        {/* ── Filter tabs ── */}
-        <div className="flex gap-2 overflow-x-auto">
+        {/* ── FILTER TABS ── */}
+        <div className="grid grid-cols-4 gap-2">
           {(["open", "acknowledged", "resolved", "all"] as Filter[]).map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className={`shrink-0 rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wide transition ${
+              className={cn(
+                "flex flex-col items-center justify-center rounded-xl py-2.5 text-sm font-bold capitalize transition-all",
                 filter === f
-                  ? "bg-purple-600 text-white shadow-md"
-                  : "bg-white text-gray-600 border border-purple-100"
-              }`}
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "bg-card text-muted-foreground ring-1 ring-border hover:bg-muted",
+              )}
             >
-              {f} {counts[f] > 0 && `(${counts[f]})`}
+              <span>{f}</span>
+              <span
+                className={cn(
+                  "mt-0.5 text-[10px] font-bold uppercase tracking-wider",
+                  filter === f ? "text-primary-foreground/80" : "text-muted-foreground/70",
+                )}
+              >
+                {counts[f]}
+              </span>
             </button>
           ))}
         </div>
 
-        {/* ── Alerts list ── */}
+        {/* ── ALERTS LIST ── */}
         {loading ? (
-          <div className="space-y-2">
+          <div className="space-y-4">
             {[1, 2, 3].map((i) => (
               <div
                 key={i}
-                className="h-24 animate-pulse rounded-2xl border-2 border-purple-100 bg-white"
+                className="h-40 animate-pulse rounded-2xl border border-border bg-muted/50"
               />
             ))}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="rounded-2xl border-2 border-purple-100 bg-white p-8 text-center">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
-              <CheckCircle2 className="h-7 w-7" />
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card p-12 text-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-success-soft">
+              <CheckCircle2 className="h-8 w-8 text-success" />
             </div>
-            <p className="mt-3 text-sm font-bold text-gray-900">
-              {filter === "open"
-                ? "No open alerts"
-                : filter === "acknowledged"
-                  ? "No acknowledged alerts"
-                  : filter === "resolved"
-                    ? "No resolved alerts"
-                    : "No alerts at all"}
+            <p className="mt-4 text-lg font-bold text-foreground">
+              {filter === "open" ? "All mothers are safe" : "No alerts found"}
             </p>
-            <p className="text-xs text-gray-500">
-              {filter === "open" ? "Your mothers are safe for now 💜" : "Nothing to show here"}
+            <p className="mt-1 text-sm text-muted-foreground">
+              {filter === "open"
+                ? "There are no unaddressed danger signs right now."
+                : "Nothing to show in this category."}
             </p>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-4">
             {filtered.map((alert) => (
               <AlertCard
                 key={alert.id}
@@ -159,8 +178,6 @@ function AlertsPage() {
             ))}
           </div>
         )}
-
-        <div className="h-4" />
       </div>
     </AppShell>
   );
@@ -176,101 +193,122 @@ function AlertCard({
   onUpdate: (id: string, status: Alert["status"]) => void;
   updating: boolean;
 }) {
-  const isOpen = alert.status === "open" || alert.status === "sent";
+  const isOpen =
+    alert.status === "open" || alert.status === "sent" || alert.status === "logged_no_sms";
   const isAcked = alert.status === "acknowledged";
   const isResolved = alert.status === "resolved";
 
-  const severityColor =
-    alert.severity === "critical"
-      ? "from-red-500 to-red-600 border-red-300"
-      : alert.severity === "urgent"
-        ? "from-orange-500 to-orange-600 border-orange-300"
-        : "from-yellow-500 to-yellow-600 border-yellow-300";
+  // Determine styling based on severity
+  const isCritical = alert.severity === "critical";
+  const isUrgent = alert.severity === "urgent";
 
-  const bgColor = isResolved
-    ? "from-gray-50 to-white border-gray-200"
-    : `from-red-50 to-white ${severityColor.split(" ").slice(1).join(" ")}`;
+  let tone: "critical" | "warning" | "success" | "neutral" = "neutral";
+  let HeaderIcon = BellRing;
+  let bgClass = "bg-card";
+  let borderClass = "border-border";
+  let iconBgClass = "bg-muted";
+  let iconTextClass = "text-muted-foreground";
+
+  if (isResolved) {
+    tone = "success";
+    HeaderIcon = CheckCircle2;
+    iconBgClass = "bg-success-soft";
+    iconTextClass = "text-success";
+  } else if (isCritical) {
+    tone = "critical";
+    HeaderIcon = ShieldAlert;
+    bgClass = "bg-critical-soft";
+    borderClass = "border-critical-line";
+    iconBgClass = "bg-critical";
+    iconTextClass = "text-critical-foreground";
+  } else if (isUrgent) {
+    tone = "warning";
+    HeaderIcon = AlertTriangle;
+    bgClass = "bg-warning-soft";
+    borderClass = "border-warning-line";
+    iconBgClass = "bg-warning";
+    iconTextClass = "text-warning-foreground";
+  }
 
   return (
-    <div className={`overflow-hidden rounded-2xl border-2 bg-gradient-to-r ${bgColor} shadow-sm`}>
-      {/* Header row */}
-      <div className="flex items-start gap-3 p-4">
+    <div
+      className={cn(
+        "overflow-hidden rounded-2xl border shadow-sm transition-all",
+        bgClass,
+        borderClass,
+      )}
+    >
+      {/* Header Row */}
+      <div className="flex items-start gap-4 p-5">
         <div
-          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${
-            isResolved
-              ? "bg-gray-300 text-gray-600"
-              : `bg-gradient-to-br ${severityColor} text-white shadow-md`
-          }`}
-        >
-          {isResolved ? (
-            <CheckCircle2 className="h-5 w-5" />
-          ) : (
-            <AlertTriangle className="h-5 w-5" />
+          className={cn(
+            "flex h-12 w-12 shrink-0 items-center justify-center rounded-full shadow-sm",
+            iconBgClass,
+            iconTextClass,
           )}
+        >
+          <HeaderIcon className={cn("h-6 w-6", !isResolved && isCritical && "animate-pulse")} />
         </div>
 
         <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-2">
-            <p className="text-sm font-black uppercase tracking-wide text-gray-900">
-              {alert.dangerSign || alert.symptom || "Danger sign"}
-            </p>
+          <div className="flex items-start justify-between gap-3">
+            <h3
+              className={cn(
+                "text-base font-bold uppercase tracking-wide",
+                isCritical ? "text-critical" : isUrgent ? "text-warning" : "text-foreground",
+              )}
+            >
+              {alert.dangerSign || alert.symptom || "Danger Sign"}
+            </h3>
             {alert.severity && !isResolved && (
-              <span
-                className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-wide ${
-                  alert.severity === "critical"
-                    ? "bg-red-600 text-white"
-                    : alert.severity === "urgent"
-                      ? "bg-orange-500 text-white"
-                      : "bg-yellow-400 text-yellow-900"
-                }`}
-              >
-                {alert.severity}
+              <Badge tone={tone}>{alert.severity.toUpperCase()}</Badge>
+            )}
+          </div>
+
+          <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+            <p className="font-semibold text-foreground">{alert.motherName || "Unknown mother"}</p>
+            {alert.motherPhone && (
+              <span className="flex items-center gap-1.5 font-medium text-muted-foreground">
+                <Phone className="h-3.5 w-3.5" />
+                {alert.motherPhone}
               </span>
             )}
           </div>
 
-          <p className="mt-1 text-sm font-bold text-purple-700">
-            {alert.motherName || "Unknown mother"}
-          </p>
-          <p className="flex items-center gap-1 text-xs text-gray-600">
-            <Phone className="h-3 w-3" />
-            {alert.motherPhone}
-          </p>
-
           {alert.message && (
-            <p className="mt-2 rounded-lg bg-white/70 px-2 py-1 text-xs italic text-gray-700">
-              "{alert.message}"
-            </p>
+            <div className="mt-3 rounded-xl bg-card/60 p-3 ring-1 ring-border/50">
+              <p className="text-sm italic text-foreground">"{alert.message}"</p>
+            </div>
           )}
 
-          <p className="mt-2 flex items-center gap-1 text-[11px] font-medium text-gray-500">
-            <Clock className="h-3 w-3" />
+          <div className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+            <Clock className="h-3.5 w-3.5" />
             {formatRelative(alert.createdAt || alert.firedAt)}
             {isResolved && alert.resolvedAt && (
-              <span className="ml-1 text-emerald-600 font-bold">· Resolved</span>
+              <span className="ml-2 text-success">· Resolved</span>
             )}
-            {isAcked && <span className="ml-1 text-purple-600 font-bold">· Acknowledged</span>}
-          </p>
+            {isAcked && <span className="ml-2 text-primary">· Acknowledged</span>}
+          </div>
         </div>
       </div>
 
-      {/* Actions */}
+      {/* Action Buttons */}
       {!isResolved && (
-        <div className="flex gap-2 border-t border-gray-100 bg-white/60 p-3">
+        <div className="flex items-center gap-3 border-t border-border/50 bg-card/40 p-4">
           {isOpen && (
             <>
               <button
                 onClick={() => onUpdate(alert.id, "acknowledged")}
                 disabled={updating}
-                className="flex-1 rounded-xl bg-purple-600 py-2 text-xs font-bold uppercase text-white shadow-sm transition active:scale-[0.98] disabled:opacity-50"
+                className="flex-1 rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground shadow-sm transition-all hover:bg-primary/90 active:scale-[0.98] disabled:opacity-50"
               >
-                {updating ? "..." : "Acknowledge"}
+                {updating ? "Acknowledging..." : "Acknowledge"}
               </button>
               <a
                 href={`tel:${alert.motherPhone}`}
-                className="flex items-center justify-center gap-1 rounded-xl border-2 border-purple-200 bg-white px-3 py-2 text-xs font-bold text-purple-700 transition active:scale-95"
+                className="flex items-center justify-center gap-2 rounded-xl border border-border bg-card px-5 py-3 text-sm font-bold text-foreground shadow-sm transition-all hover:bg-muted active:scale-95"
               >
-                <Phone className="h-3 w-3" />
+                <Phone className="h-4 w-4" />
                 Call
               </a>
             </>
@@ -279,23 +317,23 @@ function AlertCard({
             <button
               onClick={() => onUpdate(alert.id, "resolved")}
               disabled={updating}
-              className="flex-1 rounded-xl bg-emerald-600 py-2 text-xs font-bold uppercase text-white shadow-sm transition active:scale-[0.98] disabled:opacity-50"
+              className="w-full rounded-xl bg-success py-3 text-sm font-bold text-success-foreground shadow-sm transition-all hover:bg-success/90 active:scale-[0.98] disabled:opacity-50"
             >
-              {updating ? "..." : "Mark as Resolved"}
+              {updating ? "Resolving..." : "Mark as Resolved"}
             </button>
           )}
         </div>
       )}
 
-      {/* Open mother profile link */}
+      {/* View Mother Profile Link */}
       {alert.motherId && (
         <Link
           to="/mothers/$motherId"
           params={{ motherId: alert.motherId }}
-          className="flex items-center justify-between border-t border-gray-100 bg-white/80 px-4 py-2 text-xs font-bold text-purple-700 transition hover:bg-purple-50"
+          className="flex items-center justify-between border-t border-border bg-card px-5 py-3 text-sm font-semibold text-primary transition-colors hover:bg-primary/5"
         >
           View mother's profile
-          <ChevronRight className="h-3 w-3" />
+          <ChevronRight className="h-4 w-4" />
         </Link>
       )}
     </div>
