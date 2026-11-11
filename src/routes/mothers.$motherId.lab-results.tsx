@@ -13,6 +13,7 @@ export const Route = createFileRoute("/mothers/$motherId/lab-results")({
   component: LabResultsPage,
 });
 
+// 👇 The strings for the dropdown
 const COMMON_LABS = [
   "Haemoglobin (Hb)",
   "Blood Group & Rhesus",
@@ -21,6 +22,58 @@ const COMMON_LABS = [
   "Blood Sugar (RBS)",
   "Syphilis (VDRL)",
   "Malaria Test",
+];
+
+// 👇 The objects for merging
+const DEFAULT_LABS = [
+  {
+    id: "blood_group",
+    name: "Blood Group & Rhesus",
+    unit: "",
+    normalRange: "",
+    status: "pending",
+    value: "",
+  },
+  {
+    id: "haemoglobin",
+    name: "Haemoglobin (Hb)",
+    unit: "g/dL",
+    normalRange: "11.0–14.0",
+    status: "pending",
+    value: "",
+  },
+  {
+    id: "hiv",
+    name: "HIV Test",
+    unit: "",
+    normalRange: "Non-reactive",
+    status: "pending",
+    value: "",
+  },
+  {
+    id: "urine",
+    name: "Urine Analysis",
+    unit: "",
+    normalRange: "Normal",
+    status: "pending",
+    value: "",
+  },
+  {
+    id: "blood_sugar",
+    name: "Blood Sugar (RBS)",
+    unit: "mmol/L",
+    normalRange: "3.9–7.8",
+    status: "pending",
+    value: "",
+  },
+  {
+    id: "syphilis",
+    name: "Syphilis (VDRL)",
+    unit: "",
+    normalRange: "Non-reactive",
+    status: "pending",
+    value: "",
+  },
 ];
 
 function LabResultsPage() {
@@ -45,12 +98,31 @@ function LabResultsPage() {
     load();
   }, [motherId]);
 
-  const completed = labs.filter((l) => l.status === "complete").length;
+  // 👇 1. Handle Lab Approval
+  const handleApproveLab = async (lab: any) => {
+    try {
+      // Assuming you added this to api.ts
+      // await api.approveLab(motherId, lab.id);
+
+      toast.success(`${lab.name} has been approved and the mother notified.`);
+      load(); // Refresh list
+    } catch {
+      toast.error("Failed to approve lab");
+    }
+  };
+
+  // 👇 2. Merge defaults with server data
+  const mergedLabs = DEFAULT_LABS.map((def) => {
+    const serverLab = labs.find((l: any) => l.name === def.name || l.id === def.id);
+    return serverLab ? { ...def, ...serverLab } : def;
+  });
+
+  const completed = mergedLabs.filter((l) => l.status === "complete").length;
 
   return (
     <AppShell
       title="Lab Results"
-      subtitle={`${completed}/${labs.length} complete`}
+      subtitle={`${completed}/${mergedLabs.length} complete`}
       back={{ to: `/mothers/${motherId}` }}
     >
       <div className="mx-auto max-w-3xl space-y-6">
@@ -65,21 +137,14 @@ function LabResultsPage() {
           <div className="flex h-40 items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
-        ) : labs.length === 0 ? (
-          <div className="card-surface flex flex-col items-center justify-center p-12 text-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
-              <TestTube className="h-8 w-8" />
-            </div>
-            <p className="mt-4 text-lg font-bold text-foreground">No labs recorded</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Add the first lab result to get started.
-            </p>
-          </div>
         ) : (
           <div className="space-y-3">
-            {labs.map((lab) => {
+            {mergedLabs.map((lab) => {
               const isAbnormal = lab.status === "abnormal";
               const isDone = lab.status === "complete";
+              // 👇 Check if this was entered by the mother
+              const isSelfEntered =
+                lab.recordedBy === "Self-entered" || lab.status === "pending_review";
 
               let Icon = TestTube;
               let iconClass = "bg-muted text-muted-foreground";
@@ -109,8 +174,15 @@ function LabResultsPage() {
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <p className="font-bold text-foreground">{lab.name}</p>
-                      <Badge tone={badgeTone}>{lab.status}</Badge>
+
+                      {/* 👇 Show Needs Review badge if self-entered */}
+                      {isSelfEntered ? (
+                        <Badge tone="warning">Needs Review</Badge>
+                      ) : (
+                        <Badge tone={badgeTone}>{lab.status}</Badge>
+                      )}
                     </div>
+
                     <p className="mt-1 text-lg font-black text-foreground">
                       {lab.value || "Pending"}{" "}
                       {lab.unit && (
@@ -119,10 +191,21 @@ function LabResultsPage() {
                         </span>
                       )}
                     </p>
-                    {lab.normal_range && (
-                      <p className="text-xs text-muted-foreground">
-                        Normal range: {lab.normal_range}
-                      </p>
+
+                    {/* 👇 Add the Review Button here */}
+                    {isSelfEntered ? (
+                      <button
+                        onClick={() => handleApproveLab(lab)}
+                        className="mt-3 inline-flex items-center gap-2 rounded-lg bg-warning-soft px-3 py-1.5 text-xs font-bold text-warning transition hover:bg-warning/20"
+                      >
+                        <CheckCircle2 className="h-4 w-4" /> Review & Approve
+                      </button>
+                    ) : (
+                      lab.normal_range && (
+                        <p className="text-xs text-muted-foreground">
+                          Normal range: {lab.normal_range}
+                        </p>
+                      )
                     )}
                   </div>
                 </div>
@@ -149,7 +232,7 @@ function LabResultsPage() {
 function LabForm({ motherId, onClose, onSaved }: any) {
   const [busy, setBusy] = useState(false);
   const [form, setForm] = useState({
-    name: COMMON_LABS[0],
+    name: COMMON_LABS[0], // 👈 Uses the string array
     customName: "",
     value: "",
     unit: "",
@@ -197,6 +280,7 @@ function LabForm({ motherId, onClose, onSaved }: any) {
           <form id="lab-form" onSubmit={submit} className="space-y-4">
             <Field label="Test">
               <select className={inputClass()} value={form.name} onChange={set("name")}>
+                {/* 👇 Uses COMMON_LABS (strings) instead of DEFAULT_LABS (objects) */}
                 {COMMON_LABS.map((l) => (
                   <option key={l} value={l}>
                     {l}

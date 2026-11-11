@@ -79,13 +79,6 @@ function LoginPage() {
             </p>
           </div>
         </div>
-
-        <div className="hero-footer">
-          <div className="approval-mark">
-            <ShieldCheck size={22} />
-            <span>Ministry of Health Approved</span>
-          </div>
-        </div>
       </section>
 
       {/* ── RIGHT: LOGIN PANEL ── */}
@@ -156,7 +149,6 @@ function LoginPage() {
 
           <div className="login-approval">
             <ShieldCheck size={18} />
-            <span>MoH approved access</span>
           </div>
         </div>
       </section>

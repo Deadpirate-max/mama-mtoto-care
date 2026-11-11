@@ -18,6 +18,24 @@ export function analyseANCVisit(data: {
   conditions: string[];
 }): ClinicalFlag[] {
   const flags: ClinicalFlag[] = [];
+  if (data.fundalHeight > 0 && data.gestationalWeek < 18) {
+    flags.push({
+      severity: "critical",
+      condition: "Invalid Fundal Height",
+      finding: `Fundal height cannot be reliably measured before 18 weeks (entered ${data.fundalHeight}cm at week ${data.gestationalWeek}).`,
+      action: "Remove the fundal height value. It is clinically inaccurate at this stage.",
+    });
+  }
+  // 2. Fundal height drastically mismatching the week (e.g. 40cm at 7 weeks)
+  else if (data.fundalHeight > 0 && Math.abs(data.fundalHeight - data.gestationalWeek) > 6) {
+    flags.push({
+      severity: "critical",
+      condition: "Discordant Fundal Height",
+      finding: `Fundal height (${data.fundalHeight}cm) does not match gestational age (${data.gestationalWeek} weeks).`,
+      action:
+        "Re-check the measurement. If accurate, verify LMP/EDD or suspect severe IUGR/macrosomia.",
+    });
+  }
 
   // ── Blood pressure ──────────────────────────────────────────────────────
   if (data.bpSystolic >= 160 || data.bpDiastolic >= 110) {
@@ -101,6 +119,14 @@ export function analyseANCVisit(data: {
             : "Ultrasound for growth assessment. Doppler studies. Nutrition review. Increase monitoring.",
       });
     }
+  }
+  if (data.gestationalWeek < 8 && data.fetalHeartRate > 0) {
+    flags.push({
+      severity: "critical",
+      condition: "Invalid Fetal Heart Rate",
+      finding: "Fetal heart rate is not audible before 8 weeks.",
+      action: "Verify gestational age.",
+    });
   }
 
   // ── Proteinuria ─────────────────────────────────────────────────────────

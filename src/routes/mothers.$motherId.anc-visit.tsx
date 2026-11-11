@@ -40,14 +40,20 @@ function formatDate(d?: string | null): string {
 function ANCVisitPage() {
   const { motherId } = useParams({ from: "/mothers/$motherId/anc-visit" });
   const [visits, setVisits] = useState<any[]>([]);
+  const [mother, setMother] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
 
   async function load() {
     setLoading(true);
     try {
-      const data = await api.visits(motherId);
-      setVisits(data || []);
+      // Fetch both visits and mother profile
+      const [visitsData, motherData] = await Promise.all([
+        api.visits(motherId),
+        api.mother(motherId),
+      ]);
+      setVisits(visitsData || []);
+      setMother(motherData);
     } catch {
       toast.error("Failed to load visits");
     } finally {
@@ -58,6 +64,23 @@ function ANCVisitPage() {
   useEffect(() => {
     load();
   }, [motherId]);
+
+  let currentWeek = 0;
+  if (mother) {
+    if (mother.lmp) {
+      const lmpDate = new Date(mother.lmp);
+      const diffDays = Math.floor(
+        (new Date().getTime() - lmpDate.getTime()) / (1000 * 60 * 60 * 24),
+      );
+      currentWeek = Math.max(0, Math.min(42, Math.floor(diffDays / 7)));
+    } else if (mother.weeksPregnantAtRegistration && mother.registrationDate) {
+      const regDate = new Date(mother.registrationDate);
+      const weeksSinceReg = Math.floor(
+        (new Date().getTime() - regDate.getTime()) / (7 * 24 * 60 * 60 * 1000),
+      );
+      currentWeek = Math.min(42, mother.weeksPregnantAtRegistration + weeksSinceReg);
+    }
+  }
 
   return (
     <AppShell
@@ -148,6 +171,9 @@ function ANCVisitPage() {
           nextVisitNumber={
             visits.length > 0 ? Math.max(...visits.map((v: any) => v.visit_number || 0)) + 1 : 1
           }
+          currentWeek={currentWeek}
+          motherAge={mother?.age || 26}
+          motherConditions={mother?.conditions || []}
           onClose={() => setShowForm(false)}
           onSaved={() => {
             setShowForm(false);
@@ -170,7 +196,15 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-function VisitForm({ motherId, nextVisitNumber, onClose, onSaved }: any) {
+function VisitForm({
+  motherId,
+  nextVisitNumber,
+  currentWeek,
+  motherAge,
+  motherConditions,
+  onClose,
+  onSaved,
+}: any) {
   const [busy, setBusy] = useState(false);
   const [form, setForm] = useState({
     visitNumber: String(nextVisitNumber),
@@ -189,7 +223,14 @@ function VisitForm({ motherId, nextVisitNumber, onClose, onSaved }: any) {
   const lastCriticalHash = useRef<string>("");
 
   useEffect(() => {
-    if (!form.bpSystolic && !form.fetalHeartRate && !form.urineProtein) {
+    if (
+      !form.bpSystolic &&
+      !form.bpDiastolic &&
+      !form.fetalHeartRate &&
+      !form.urineProtein &&
+      !form.fundalHeight &&
+      !form.weight
+    ) {
       setFlags([]);
       return;
     }
@@ -202,13 +243,12 @@ function VisitForm({ motherId, nextVisitNumber, onClose, onSaved }: any) {
         fundalHeight: parseFloat(form.fundalHeight) || 0,
         fetalHeartRate: parseInt(form.fetalHeartRate) || 0,
         urineProtein: form.urineProtein || "negative",
-        gestationalWeek: 28,
-        age: 26,
-        conditions: [],
+        gestationalWeek: currentWeek,
+        age: motherAge,
+        conditions: motherConditions,
       });
       setFlags(result);
 
-      // 🚨 Show popup ONLY when a critical finding appears for the first time
       const criticals = result.filter((f) => f.severity === "critical");
       if (criticals.length > 0) {
         const hash = criticals
@@ -229,6 +269,10 @@ function VisitForm({ motherId, nextVisitNumber, onClose, onSaved }: any) {
     form.fetalHeartRate,
     form.urineProtein,
     form.fundalHeight,
+    form.weight,
+    currentWeek,
+    motherAge,
+    motherConditions,
   ]);
 
   const set = (k: string) => (e: any) => setForm((f) => ({ ...f, [k]: e.target.value }));

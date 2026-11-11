@@ -59,7 +59,6 @@ export function getToken(): string | null {
   const token = window.localStorage.getItem(TOKEN_KEY);
   if (!token) return null;
   if (!isTokenValid(token)) {
-    // Expired or malformed — clear so we don't fire doomed requests
     clearSession();
     return null;
   }
@@ -143,11 +142,16 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   }
 
   if (!res.ok || payload?.success === false) {
-    const errorMsg =
-      typeof payload?.error === "string"
-        ? payload.error
-        : ((payload?.error as { message?: string } | undefined)?.message ??
-          `Request failed (${res.status})`);
+    let errorMsg = `Request failed (${res.status})`;
+
+    if (Array.isArray((payload as any)?.errors) && (payload as any).errors.length > 0) {
+      errorMsg = (payload as any).errors[0];
+    } else if (typeof payload?.error === "string") {
+      errorMsg = payload.error;
+    } else if ((payload?.error as { message?: string })?.message) {
+      errorMsg = (payload?.error as { message?: string }).message!;
+    }
+
     throw new ApiError(errorMsg, res.status);
   }
 
@@ -168,7 +172,7 @@ export type Mother = {
   edd?: string | null;
   gravida?: string | number;
   parity?: string | number;
-  riskLevel?: "low" | "medium" | "high";
+  riskLevel?: "low" | "medium" | "high" | "critical";
   nextAppointment?: string | null;
   createdAt?: string;
   county?: string;
@@ -302,6 +306,10 @@ export const api = {
   labs: (id: string) => request<LabResult[]>(ENDPOINTS.labs(id), {}),
   createLab: (id: string, body: Omit<LabResult, "id" | "motherId" | "flags">) =>
     request<LabResult>(ENDPOINTS.labs(id), { method: "POST", body }),
+  approveLab: (motherId: string, labId: string) =>
+    request<{ success: boolean; message: string }>(`/mothers/${motherId}/labs/${labId}/approve`, {
+      method: "PATCH",
+    }),
   vaccinations: (id: string) => request<Vaccination[]>(ENDPOINTS.vaccinations(id), {}),
   createVaccination: (id: string, body: Omit<Vaccination, "id" | "motherId">) =>
     request<Vaccination>(ENDPOINTS.vaccinations(id), { method: "POST", body }),

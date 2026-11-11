@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { inputClass } from "@/components/Field";
 import { api, type Mother } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
 
 export const Route = createFileRoute("/mothers/search")({
   component: SearchMothers,
@@ -32,11 +33,19 @@ function SearchMothers() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // 👇 Debounced search effect
+  // Fetch all alerts to determine risk
+  const { data: allAlerts = [] } = useQuery({
+    queryKey: ["alerts"],
+    queryFn: () => api.alerts(),
+  });
+
+  const openAlerts = allAlerts.filter(
+    (a: any) => a.status === "open" || a.status === "sent" || a.status === "logged_no_sms",
+  );
+
   useEffect(() => {
     let mounted = true;
 
-    // If empty, fetch recent mothers. If typing, wait 300ms before hitting the API.
     const delayDebounceFn = setTimeout(
       async () => {
         setLoading(true);
@@ -127,66 +136,71 @@ function SearchMothers() {
               {query ? "Search Results" : "Recently Registered"}
             </h2>
             <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-              {mothers.map((mother, i) => (
-                <Link
-                  key={mother.id}
-                  to="/mothers/$motherId"
-                  params={{ motherId: mother.id }}
-                  className={cn(
-                    "group flex items-center gap-4 p-4 transition-colors hover:bg-muted/50",
-                    i !== mothers.length - 1 && "border-b border-border",
-                  )}
-                >
-                  {/* Avatar */}
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-baby-soft text-base font-bold text-baby">
-                    {mother.name?.charAt(0).toUpperCase() || "?"}
-                  </div>
+              {mothers.map((mother, i) => {
+                // 👇 Determine risk level dynamically
+                const hasOpenAlert = openAlerts.some((a: any) => a.motherId === mother.id);
+                const isHighRisk =
+                  mother.riskLevel === "high" || mother.riskLevel === "critical" || hasOpenAlert;
 
-                  {/* Details */}
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="truncate font-bold text-foreground">
-                        {mother.name || "Unknown"}
-                      </p>
-                      {mother.riskLevel === "high" ? (
-                        <Badge tone="critical">High Risk</Badge>
-                      ) : mother.riskLevel === "medium" ? (
-                        <Badge tone="warning">Medium Risk</Badge>
-                      ) : (
-                        <Badge tone="success">Stable</Badge>
-                      )}
-                    </div>
-
-                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <Phone className="h-3 w-3" />
-                        {mother.phone}
-                      </span>
-                      {(mother.village || mother.county) && (
-                        <span className="flex items-center gap-1">
-                          <MapPin className="h-3 w-3" />
-                          {[mother.village, mother.county].filter(Boolean).join(", ")}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* EDD & Chevron */}
-                  <div className="flex shrink-0 items-center gap-4">
-                    {mother.edd && (
-                      <div className="hidden text-right sm:block">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                          EDD
-                        </p>
-                        <p className="text-sm font-semibold text-foreground">
-                          {formatDate(mother.edd)}
-                        </p>
-                      </div>
+                return (
+                  <Link
+                    key={mother.id}
+                    to="/mothers/$motherId"
+                    params={{ motherId: mother.id }}
+                    className={cn(
+                      "group flex items-center gap-4 p-4 transition-colors hover:bg-muted/50",
+                      i !== mothers.length - 1 && "border-b border-border",
                     )}
-                    <ChevronRight className="h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1" />
-                  </div>
-                </Link>
-              ))}
+                  >
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-baby-soft text-base font-bold text-baby">
+                      {mother.name?.charAt(0).toUpperCase() || "?"}
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="truncate font-bold text-foreground">
+                          {mother.name || "Unknown"}
+                        </p>
+                        {/* 👇 Badges correctly placed here */}
+                        {isHighRisk ? (
+                          <Badge tone="critical">High Risk</Badge>
+                        ) : mother.riskLevel === "medium" ? (
+                          <Badge tone="warning">Medium Risk</Badge>
+                        ) : (
+                          <Badge tone="success">Stable</Badge>
+                        )}
+                      </div>
+
+                      <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <Phone className="h-3 w-3" />
+                          {mother.phone}
+                        </span>
+                        {(mother.village || mother.county) && (
+                          <span className="flex items-center gap-1">
+                            <MapPin className="h-3 w-3" />
+                            {[mother.village, mother.county].filter(Boolean).join(", ")}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex shrink-0 items-center gap-4">
+                      {mother.edd && (
+                        <div className="hidden text-right sm:block">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                            EDD
+                          </p>
+                          <p className="text-sm font-semibold text-foreground">
+                            {formatDate(mother.edd)}
+                          </p>
+                        </div>
+                      )}
+                      <ChevronRight className="h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1" />
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
           </div>
         )}

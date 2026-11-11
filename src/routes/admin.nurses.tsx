@@ -77,12 +77,17 @@ function ManageNursesPage() {
         body: JSON.stringify({ phone: invitePhone, facilityCode: inviteFacility }),
       });
       const json = await res.json();
+
       if (json.success) {
-        toast.success("Invite sent successfully!");
+        toast.success("Invite sent!");
         setInvitePhone("");
         fetchData();
       } else {
-        toast.error(json.error);
+        const errorMsg =
+          typeof json.error === "string"
+            ? json.error
+            : json.error?.message || "Failed to send invite";
+        toast.error(errorMsg);
       }
     } catch {
       toast.error("Failed to send invite");

@@ -14,14 +14,91 @@ export const Route = createFileRoute("/mothers/$motherId/vaccination")({
 });
 
 const COMMON_VACCINES = [
-  "Tetanus Toxoid (TT1)",
-  "Tetanus Toxoid (TT2)",
-  "Tetanus Toxoid (TT3)",
-  "Tetanus Toxoid (TT4)",
-  "Tetanus Toxoid (TT5)",
-  "Influenza",
-  "COVID-19",
-  "Hepatitis B",
+  "BCG",
+  "OPV 0",
+  "Penta 1",
+  "OPV 1",
+  "PCV 1",
+  "Rota 1",
+  "Penta 2",
+  "Penta 3",
+  "Measles",
+];
+
+// 👇 1. The 9 default vaccines
+const DEFAULT_VACCINES = [
+  {
+    id: "bcg",
+    name: "BCG",
+    target_week_or_age: "At birth",
+    given: false,
+    given_date: null,
+    batch_number: null,
+  },
+  {
+    id: "opv0",
+    name: "OPV 0",
+    target_week_or_age: "At birth",
+    given: false,
+    given_date: null,
+    batch_number: null,
+  },
+  {
+    id: "penta1",
+    name: "Penta 1",
+    target_week_or_age: "6 weeks",
+    given: false,
+    given_date: null,
+    batch_number: null,
+  },
+  {
+    id: "opv1",
+    name: "OPV 1",
+    target_week_or_age: "6 weeks",
+    given: false,
+    given_date: null,
+    batch_number: null,
+  },
+  {
+    id: "pcv1",
+    name: "PCV 1",
+    target_week_or_age: "6 weeks",
+    given: false,
+    given_date: null,
+    batch_number: null,
+  },
+  {
+    id: "rota1",
+    name: "Rota 1",
+    target_week_or_age: "6 weeks",
+    given: false,
+    given_date: null,
+    batch_number: null,
+  },
+  {
+    id: "penta2",
+    name: "Penta 2",
+    target_week_or_age: "10 weeks",
+    given: false,
+    given_date: null,
+    batch_number: null,
+  },
+  {
+    id: "penta3",
+    name: "Penta 3",
+    target_week_or_age: "14 weeks",
+    given: false,
+    given_date: null,
+    batch_number: null,
+  },
+  {
+    id: "measles1",
+    name: "Measles",
+    target_week_or_age: "9 months",
+    given: false,
+    given_date: null,
+    batch_number: null,
+  },
 ];
 
 function formatDate(d?: string | null): string {
@@ -59,12 +136,19 @@ function VaccinationPage() {
     load();
   }, [motherId]);
 
-  const givenCount = vax.filter((v) => v.given).length;
+  // 👇 2. Merge the server data with the 9 defaults
+  const mergedVaccines = DEFAULT_VACCINES.map((def) => {
+    const serverVax = vax.find((v: any) => v.name === def.name || v.id === def.id);
+    return serverVax ? { ...def, ...serverVax, given: true } : def;
+  });
+
+  // 👇 3. Count based on the merged array
+  const givenCount = mergedVaccines.filter((v) => v.given).length;
 
   return (
     <AppShell
       title="Vaccinations"
-      subtitle={`${givenCount}/${vax.length} given`}
+      subtitle={`${givenCount}/${mergedVaccines.length} given`} // Shows 1/9 instead of 1/1
       back={{ to: `/mothers/${motherId}` }}
     >
       <div className="mx-auto max-w-3xl space-y-6">
@@ -79,19 +163,10 @@ function VaccinationPage() {
           <div className="flex h-40 items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
-        ) : vax.length === 0 ? (
-          <div className="card-surface flex flex-col items-center justify-center p-12 text-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
-              <Syringe className="h-8 w-8" />
-            </div>
-            <p className="mt-4 text-lg font-bold text-foreground">No vaccinations yet</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Record the first one to get started.
-            </p>
-          </div>
         ) : (
           <div className="space-y-3">
-            {vax.map((v) => {
+            {/* 👇 4. Map through the merged array */}
+            {mergedVaccines.map((v) => {
               const isDone = v.given;
               return (
                 <div key={v.id} className="card-surface flex items-start gap-4 p-4">
