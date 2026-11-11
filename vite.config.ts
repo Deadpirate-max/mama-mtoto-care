@@ -1,7 +1,7 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
-import tsConfigPaths from "vite-tsconfig-paths";
+import tsconfigPaths from "vite-tsconfig-paths";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import { nitro } from "nitro/vite";
 
@@ -9,13 +9,5 @@ export default defineConfig({
   build: {
     cssMinify: "esbuild",
   },
-  plugins: [
-    react(),
-    tailwindcss(),
-    tsConfigPaths({
-      projects: ["./tsconfig.json"],
-    }),
-    tanstackStart(),
-    nitro(),
-  ],
+  plugins: [tanstackStart(), react(), tailwindcss(), tsconfigPaths(), nitro()],
 });
