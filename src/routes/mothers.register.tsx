@@ -53,15 +53,13 @@ function RegisterMother() {
     lmp: "",
     gravida: "1",
     parity: "0",
+    bloodGroup: ""
   });
 
   const edd = addDays(form.lmp, 280);
 
-  const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => {
+     const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
     setForm((f) => ({ ...f, [k]: e.target.value }));
-    // Clear error when user types
-    if (errors[k]) setErrors((err) => ({ ...err, [k]: "" }));
-  };
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -92,6 +90,7 @@ function RegisterMother() {
         phone: form.phone.replace(/\s/g, ""),
         age: Number(form.age) || 0,
         nationalId: form.nationalId.trim(),
+        bloodGroup: form.bloodGroup,
         village: form.village.trim(),
         lmp: form.lmp,
         edd,
@@ -206,6 +205,7 @@ function RegisterMother() {
                     lmp: "",
                     gravida: "1",
                     parity: "0",
+                    bloodGroup: ""
                   });
                   setErrors({});
                 }}
@@ -294,6 +294,24 @@ function RegisterMother() {
                 </div>
               </Field>
             </div>
+            <div className="grid grid-cols-2 gap-4">
+  <Field label="Blood Group" required>
+    <select
+      className={errors["bloodGroup"] ? inputClassError() : inputClass()}
+      value={form.bloodGroup}
+      onChange={set("bloodGroup")}
+    >
+      <option value="">Select...</option>
+      <option value="A+">A+</option>
+      <option value="A-">A-</option>
+      <option value="B+">B+</option>
+      <option value="B-">B-</option>
+      <option value="O+">O+</option>
+      <option value="O-">O-</option>
+      <option value="AB+">AB+</option>
+      <option value="AB-">AB-</option>
+    </select>
+  </Field>
 
             <Field label="Village / Location">
               <div className="relative">

@@ -174,6 +174,7 @@ export type Mother = {
   parity?: string | number;
   riskLevel?: "low" | "medium" | "high" | "critical";
   nextAppointment?: string | null;
+  bloodGroup?: string;
   createdAt?: string;
   county?: string;
   idNumber?: string;
@@ -290,6 +291,7 @@ export const api = {
     facility_name?: string;
     facility_code?: string;
     nextAppointment?: string | null;
+    bloodGroup?: string;
   }) =>
     request<{ mother: Mother; smsSent: boolean }>(ENDPOINTS.registerMother, {
       method: "POST",

@@ -217,6 +217,8 @@ function VisitForm({
     urineProtein: "negative",
     urineGlucose: "negative",
     notes: "",
+    nextAppointment: "",
+    medications: [{ name: "Ferrous Sulfate", dose: "60mg", time: "9:00 AM" }],
   });
   const [flags, setFlags] = useState<any[]>([]);
   const [showFlagModal, setShowFlagModal] = useState(false);
@@ -294,10 +296,12 @@ function VisitForm({
         urineGlucose: form.urineGlucose,
         notes: form.notes,
         recordedBy: "Nurse",
+        nextAppointment: form.nextAppointment || null,
+        medications: form.medications || [],
       } as any);
 
       const nextWeek = response?.nextAncWeek;
-      const nextDate = response?.next_appointment;
+      const nextDate = response?.next_appointment || form.nextAppointment;
 
       if (nextWeek && nextDate) {
         toast.success(
@@ -424,6 +428,72 @@ function VisitForm({
                   <option value="2+">2+</option>
                 </select>
               </Field>
+            </div>
+            {/*  Next Appointment Date */}
+            <Field label="Next Visit Date" hint="This will update the mother's app">
+              <input
+                className={inputClass()}
+                type="date"
+                value={form.nextAppointment}
+                onChange={set("nextAppointment")}
+              />
+            </Field>
+
+            {/*  Medications */}
+            <div className="card-surface space-y-3 bg-muted/20">
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-bold text-foreground">Prescribe Medications</h4>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setForm((f) => ({
+                      ...f,
+                      medications: [...f.medications, { name: "", dose: "", time: "9:00 AM" }],
+                    }))
+                  }
+                  className="text-xs font-bold text-primary hover:underline"
+                >
+                  + Add Med
+                </button>
+              </div>
+
+              {form.medications.map((med, index) => (
+                <div key={index} className="grid grid-cols-3 gap-2">
+                  <input
+                    placeholder="Name (e.g., Iron)"
+                    className={inputClass()}
+                    value={med.name}
+                    onChange={(e) => {
+                      const newMeds = form.medications.map((m, i) =>
+                        i === index ? { ...m, name: e.target.value } : m,
+                      );
+                      setForm((f) => ({ ...f, medications: newMeds }));
+                    }}
+                  />
+                  <input
+                    placeholder="Dose (e.g., 60mg)"
+                    className={inputClass()}
+                    value={med.dose}
+                    onChange={(e) => {
+                      const newMeds = form.medications.map((m, i) =>
+                        i === index ? { ...m, dose: e.target.value } : m,
+                      );
+                      setForm((f) => ({ ...f, medications: newMeds }));
+                    }}
+                  />
+                  <input
+                    placeholder="Time (e.g., 9:00 AM)"
+                    className={inputClass()}
+                    value={med.time}
+                    onChange={(e) => {
+                      const newMeds = form.medications.map((m, i) =>
+                        i === index ? { ...m, time: e.target.value } : m,
+                      );
+                      setForm((f) => ({ ...f, medications: newMeds }));
+                    }}
+                  />
+                </div>
+              ))}
             </div>
 
             <Field label="Notes">
