@@ -31,6 +31,7 @@ function ManageNursesPage() {
   const [newFacName, setNewFacName] = useState("");
   const [newFacCode, setNewFacCode] = useState("");
   const [newFacCounty, setNewFacCounty] = useState("");
+  const [inviteRole, setInviteRole] = useState("nurse");
 
   const fetchData = async () => {
     try {
@@ -74,7 +75,11 @@ function ManageNursesPage() {
       const res = await fetch(`${API_BASE}/nurses/invite`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
-        body: JSON.stringify({ phone: invitePhone, facilityCode: inviteFacility }),
+        body: JSON.stringify({
+          phone: invitePhone,
+          facilityCode: inviteFacility,
+          role: inviteRole,
+        }),
       });
       const json = await res.json();
 
@@ -293,6 +298,20 @@ function ManageNursesPage() {
                 className={inputClass()}
                 required
               />
+            </Field>
+            <Field label="Role" required>
+              <select
+                value={inviteRole}
+                onChange={(e) => setInviteRole(e.target.value)}
+                className={inputClass()}
+              >
+                <option value="nurse">Nurse (CHV)</option>
+                <option value="midwife">Midwife</option>
+                <option value="clinical_officer">Clinical Officer</option>
+                <option value="doctor">Medical Doctor</option>
+                <option value="general_practitioner">General Practitioner</option>
+                <option value="obstetrician">Obstetrician/Gynecologist</option>
+              </select>
             </Field>
             {user?.role === "super_admin" && (
               <Field label="Assign to Facility" required>

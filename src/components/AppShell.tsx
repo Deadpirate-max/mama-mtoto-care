@@ -31,7 +31,10 @@ const ROLE_LABEL: Record<string, string> = {
   facility_admin: "Facility admin",
   nurse: "Nurse",
   midwife: "Midwife",
-  clinical_officer: "Clinical officer",
+  clinical_officer: "Clinical Officer",
+  doctor: "Medical Doctor",
+  general_practitioner: "General Practitioner",
+  obstetrician: "Obstetrician",
 };
 
 const initialsOf = (name: string) =>
@@ -43,7 +46,6 @@ const initialsOf = (name: string) =>
     .join("") || "?";
 
 function AlertBadge({ count }: { count?: number | undefined }) {
-  // ✅ add `| undefined`
   if (!count) return null;
   return (
     <span
