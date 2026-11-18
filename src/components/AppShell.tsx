@@ -36,7 +36,7 @@ const ROLE_LABEL: Record<string, string> = {
   general_practitioner: "General Practitioner",
   obstetrician: "Obstetrician",
 };
-
+//
 const initialsOf = (name: string) =>
   name
     .split(" ")
