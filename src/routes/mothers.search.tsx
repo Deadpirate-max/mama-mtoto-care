@@ -137,7 +137,7 @@ function SearchMothers() {
             </h2>
             <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
               {mothers.map((mother, i) => {
-                // 👇 Determine risk level dynamically
+                //  Determine risk level dynamically
                 const hasOpenAlert = openAlerts.some((a: any) => a.motherId === mother.id);
                 const isHighRisk =
                   mother.riskLevel === "high" || mother.riskLevel === "critical" || hasOpenAlert;
@@ -148,8 +148,14 @@ function SearchMothers() {
                     to="/mothers/$motherId"
                     params={{ motherId: mother.id }}
                     className={cn(
-                      "group flex items-center gap-4 p-4 transition-colors hover:bg-muted/50",
+                      "group flex items-center gap-4 p-4 transition-colors hover:bg-muted/50 border-l-4",
                       i !== mothers.length - 1 && "border-b border-border",
+
+                      isHighRisk
+                        ? "border-l-critical bg-critical-soft/20 hover:bg-critical-soft/40"
+                        : mother.riskLevel === "medium"
+                          ? "border-l-warning bg-warning-soft/10 hover:bg-warning-soft/30"
+                          : "border-l-transparent hover:bg-muted/50",
                     )}
                   >
                     <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-baby-soft text-base font-bold text-baby">
@@ -161,7 +167,7 @@ function SearchMothers() {
                         <p className="truncate font-bold text-foreground">
                           {mother.name || "Unknown"}
                         </p>
-                        {/* 👇 Badges correctly placed here */}
+                        {/* Badges correctly placed here */}
                         {isHighRisk ? (
                           <Badge tone="critical">High Risk</Badge>
                         ) : mother.riskLevel === "medium" ? (
